@@ -46,7 +46,7 @@ public class SignatureProcessService : ISignatureProcessService
         if (!validationResult.IsValid)
         {
             var errors = string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage));
-            throw new ValidationException(errors);
+            throw new Models.Exceptions.ValidationException(errors);
         }
 
         try
@@ -84,7 +84,7 @@ public class SignatureProcessService : ISignatureProcessService
                 {
                     DisplayName = s.DisplayName,
                     Email = s.Email,
-                    SignatureInfo = new SignatureInfo
+                    SignatureInfo = new Models.Entities.SignatureInfo
                     {
                         PageNumber = s.Signature.PageNumber,
                         X = s.Signature.X,
@@ -120,7 +120,7 @@ public class SignatureProcessService : ISignatureProcessService
                 SigningUrl = await _signatureProcessRepository.GetSigningUrlAsync(processId, cancellationToken)
             };
         }
-        catch (Exception ex) when (ex is not ValidationException && ex is not BusinessException)
+        catch (Exception ex) when (ex is not Models.Exceptions.ValidationException && ex is not BusinessException)
         {
             _logger.LogError(ex, "Error creating signature process");
             throw new DataException("An error occurred while creating the signature process", ex);

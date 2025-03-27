@@ -1,3 +1,5 @@
+using FluentValidation.AspNetCore;
+
 namespace LapDrive.SignatureAdapter.API.Extensions;
 
 /// <summary>

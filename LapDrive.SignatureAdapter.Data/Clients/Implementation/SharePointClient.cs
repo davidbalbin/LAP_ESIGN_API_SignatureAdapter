@@ -45,18 +45,19 @@ public class SharePointClient : ISharePointClient
             var item = list.GetItemById(int.Parse(itemId));
             
             context.Load(item, i => i.File);
-            await context.ExecuteQueryAsync(cancellationToken);
+            await context.ExecuteQueryAsync();
             
             if (item.File == null)
             {
                 throw new DataException($"Item with ID {itemId} is not a file");
             }
             
-            using var stream = item.File.OpenBinaryStream();
-            await context.ExecuteQueryAsync(cancellationToken);
+            // Get file stream without using statement
+            var fileStreamResult = item.File.OpenBinaryStream();
+            await context.ExecuteQueryAsync();
             
             using var memoryStream = new MemoryStream();
-            await stream.Value.CopyToAsync(memoryStream, cancellationToken);
+            await fileStreamResult.Value.CopyToAsync(memoryStream, cancellationToken);
             
             return memoryStream.ToArray();
         }
@@ -78,7 +79,7 @@ public class SharePointClient : ISharePointClient
             var item = list.GetItemById(int.Parse(folderId));
             
             context.Load(item, i => i.Folder);
-            await context.ExecuteQueryAsync(cancellationToken);
+            await context.ExecuteQueryAsync();
             
             if (item.Folder == null)
             {
@@ -86,7 +87,7 @@ public class SharePointClient : ISharePointClient
             }
             
             context.Load(item.Folder, f => f.Files);
-            await context.ExecuteQueryAsync(cancellationToken);
+            await context.ExecuteQueryAsync();
             
             using var zipMemoryStream = new MemoryStream();
             using (var zipArchive = new ZipArchive(zipMemoryStream, ZipArchiveMode.Create, true))
@@ -94,17 +95,18 @@ public class SharePointClient : ISharePointClient
                 foreach (var file in item.Folder.Files)
                 {
                     context.Load(file, f => f.Name);
-                    await context.ExecuteQueryAsync(cancellationToken);
+                    await context.ExecuteQueryAsync();
                     
                     if (file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                     {
                         var fileEntry = zipArchive.CreateEntry(file.Name, CompressionLevel.Optimal);
                         using var entryStream = fileEntry.Open();
                         
-                        using var fileStream = file.OpenBinaryStream();
-                        await context.ExecuteQueryAsync(cancellationToken);
+                        // Get file stream without using statement
+                        var fileStreamResult = file.OpenBinaryStream();
+                        await context.ExecuteQueryAsync();
                         
-                        await fileStream.Value.CopyToAsync(entryStream, cancellationToken);
+                        await fileStreamResult.Value.CopyToAsync(entryStream, cancellationToken);
                     }
                 }
             }
@@ -134,7 +136,7 @@ public class SharePointClient : ISharePointClient
             }
             
             item.Update();
-            await context.ExecuteQueryAsync(cancellationToken);
+            await context.ExecuteQueryAsync();
         }
         catch (Exception ex)
         {

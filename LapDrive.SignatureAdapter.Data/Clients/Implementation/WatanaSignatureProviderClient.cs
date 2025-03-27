@@ -72,8 +72,10 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
                     {
                         new Archivo
                         {
-                            Nombre = signatureProcess.Document.Name,
-                            ZipBase64 = Convert.ToBase64String(ZipDocument(signatureProcess.Document.Content, signatureProcess.Document.Name)),
+                            Nombre = signatureProcess.Document.Name ?? throw new ArgumentNullException(nameof(signatureProcess.Document.Name)),
+                            ZipBase64 = Convert.ToBase64String(ZipDocument(
+                                signatureProcess.Document.Content ?? throw new ArgumentNullException(nameof(signatureProcess.Document.Content)),
+                                signatureProcess.Document.Name ?? throw new ArgumentNullException(nameof(signatureProcess.Document.Name)))),
                             FirmaVisual = GetFirmaVisual(signatureProcess.Signers.First().SignatureInfo)
                         }
                     }
@@ -99,15 +101,34 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
     /// <inheritdoc/>
     public async Task<string> GetSigningUrlAsync(string processId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(processId, nameof(processId));
+
         try
         {
             _logger.LogInformation("Getting signing URL for process {ProcessId}", processId);
-            
-            // Try to query the process
+
+            // Get carpeta response
             var response = await _watanaClient.Carpetas.ConsultarCarpetaAsync(processId, cancellationToken);
-            
-            // Return the signing URL
-            return response.EnlaceParaFirmar ?? string.Empty;
+
+            if (!response.Success)
+            {
+                throw new DataException($"Error consultando carpeta en Watana: {response.Mensaje}");
+            }
+
+            // Use the same request to get the signing URL
+            var carpetaRequest = new EnviarCarpetaRequest
+            {
+                CarpetaCodigo = response.SolicitudNumero
+            };
+
+            var enlaceResponse = await _watanaClient.Carpetas.EnviarCarpetaAsync(carpetaRequest, cancellationToken);
+
+            if (!enlaceResponse.Success)
+            {
+                throw new DataException($"Error obteniendo enlace de firma en Watana: {enlaceResponse.Mensaje}");
+            }
+
+            return enlaceResponse.EnlaceParaFirmar ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -121,6 +142,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         // Step 1: Prepare the request (upload documents)
         var archivos = new List<Archivo>();
         
+        ArgumentNullException.ThrowIfNull(signatureProcess.Document?.Content, nameof(signatureProcess.Document.Content));
         using (var zipArchive = new ZipArchive(new MemoryStream(signatureProcess.Document.Content), ZipArchiveMode.Read))
         {
             foreach (var entry in zipArchive.Entries)
@@ -204,16 +226,23 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         return enviarResponse.FirmaCodigo;
     }
 
-    private object GetFirmaVisual(SignatureInfo signatureInfo)
+    private FirmaVisual GetFirmaVisual(SignatureInfo signatureInfo)
     {
-        // If position is provided, use predefined position
+        // Si hay una posición predefinida, permite al firmante posicionar manualmente
         if (!string.IsNullOrEmpty(signatureInfo.Position))
         {
-            // Allow manual positioning by the signer
-            return true;
+            return new FirmaVisual
+            {
+                UbicacionX = 0,
+                UbicacionY = 0,
+                Largo = 300,
+                Alto = 40,
+                Pagina = signatureInfo.PageNumber,
+                Texto = "Firmado digitalmente por: <FIRMANTE>\r\n<FECHA>"
+            };
         }
         
-        // Otherwise, use X and Y if provided
+        // Si se proporcionan coordenadas X e Y específicas
         if (signatureInfo.X.HasValue && signatureInfo.Y.HasValue)
         {
             return new FirmaVisual
@@ -227,7 +256,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
             };
         }
         
-        // Default for auto placement
+        // Posicionamiento automático por defecto
         return new FirmaVisual
         {
             UbicacionX = 50,
@@ -241,6 +270,9 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
 
     private byte[] ZipDocument(byte[] documentContent, string documentName)
     {
+        ArgumentNullException.ThrowIfNull(documentContent);
+        ArgumentException.ThrowIfNullOrEmpty(documentName);
+
         using var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {

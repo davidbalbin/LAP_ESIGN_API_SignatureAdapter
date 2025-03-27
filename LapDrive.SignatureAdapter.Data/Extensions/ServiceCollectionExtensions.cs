@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISignatureProcessRepository, WatanaSignatureProcessRepository>();
         
         // Register Watana Client
-        services.AddWatanaClient(configuration);
+        services.AddWatanaClient(configuration, "SignatureProvider");
         
         return services;
     }

@@ -3,6 +3,7 @@ using LapDrive.SignatureAdapter.Business.Services.Implementation;
 using LapDrive.SignatureAdapter.Business.Validators;
 using FluentValidation;
 using LapDrive.SignatureAdapter.Models.DTOs.Request;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LapDrive.SignatureAdapter.Business.Extensions;
 
