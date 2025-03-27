@@ -1,0 +1,145 @@
+using LapDrive.SignatureAdapter.Data.Clients.Interfaces;
+using LapDrive.SignatureAdapter.Data.Configuration;
+using LapDrive.SignatureAdapter.Data.Factories;
+using LapDrive.SignatureAdapter.Models.Exceptions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.SharePoint.Client;
+using System.IO.Compression;
+
+namespace LapDrive.SignatureAdapter.Data.Clients.Implementation;
+
+/// <summary>
+/// SharePoint client implementation
+/// </summary>
+public class SharePointClient : ISharePointClient
+{
+    private readonly SharePointContextFactory _contextFactory;
+    private readonly SharePointOptions _options;
+    private readonly ILogger<SharePointClient> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SharePointClient"/> class.
+    /// </summary>
+    /// <param name="contextFactory">The SharePoint context factory</param>
+    /// <param name="options">The SharePoint options</param>
+    /// <param name="logger">The logger</param>
+    public SharePointClient(
+        SharePointContextFactory contextFactory,
+        IOptions<SharePointOptions> options,
+        ILogger<SharePointClient> logger)
+    {
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <inheritdoc/>
+    public async Task<byte[]> GetFileContentsAsync(string webUrl, string libraryName, string itemId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var context = _contextFactory.CreateContext(webUrl);
+            var web = context.Web;
+            var list = web.Lists.GetByTitle(libraryName);
+            var item = list.GetItemById(int.Parse(itemId));
+            
+            context.Load(item, i => i.File);
+            await context.ExecuteQueryAsync(cancellationToken);
+            
+            if (item.File == null)
+            {
+                throw new DataException($"Item with ID {itemId} is not a file");
+            }
+            
+            using var stream = item.File.OpenBinaryStream();
+            await context.ExecuteQueryAsync(cancellationToken);
+            
+            using var memoryStream = new MemoryStream();
+            await stream.Value.CopyToAsync(memoryStream, cancellationToken);
+            
+            return memoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting file contents from SharePoint for item {ItemId} in {WebUrl}/{LibraryName}", itemId, webUrl, libraryName);
+            throw new DataException($"Error retrieving file contents: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<byte[]> GetFolderContentsAsZipAsync(string webUrl, string libraryName, string folderId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var context = _contextFactory.CreateContext(webUrl);
+            var web = context.Web;
+            var list = web.Lists.GetByTitle(libraryName);
+            var item = list.GetItemById(int.Parse(folderId));
+            
+            context.Load(item, i => i.Folder);
+            await context.ExecuteQueryAsync(cancellationToken);
+            
+            if (item.Folder == null)
+            {
+                throw new DataException($"Item with ID {folderId} is not a folder");
+            }
+            
+            context.Load(item.Folder, f => f.Files);
+            await context.ExecuteQueryAsync(cancellationToken);
+            
+            using var zipMemoryStream = new MemoryStream();
+            using (var zipArchive = new ZipArchive(zipMemoryStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var file in item.Folder.Files)
+                {
+                    context.Load(file, f => f.Name);
+                    await context.ExecuteQueryAsync(cancellationToken);
+                    
+                    if (file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var fileEntry = zipArchive.CreateEntry(file.Name, CompressionLevel.Optimal);
+                        using var entryStream = fileEntry.Open();
+                        
+                        using var fileStream = file.OpenBinaryStream();
+                        await context.ExecuteQueryAsync(cancellationToken);
+                        
+                        await fileStream.Value.CopyToAsync(entryStream, cancellationToken);
+                    }
+                }
+            }
+            
+            return zipMemoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting folder contents from SharePoint for folder {FolderId} in {WebUrl}/{LibraryName}", folderId, webUrl, libraryName);
+            throw new DataException($"Error retrieving folder contents: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateItemMetadataAsync(string webUrl, string libraryName, string itemId, Dictionary<string, object> metadata, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var context = _contextFactory.CreateContext(webUrl);
+            var web = context.Web;
+            var list = web.Lists.GetByTitle(libraryName);
+            var item = list.GetItemById(int.Parse(itemId));
+            
+            foreach (var kvp in metadata)
+            {
+                item[kvp.Key] = kvp.Value;
+            }
+            
+            item.Update();
+            await context.ExecuteQueryAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating metadata for item {ItemId} in {WebUrl}/{LibraryName}", itemId, webUrl, libraryName);
+            throw new DataException($"Error updating item metadata: {ex.Message}", ex);
+        }
+    }
+}

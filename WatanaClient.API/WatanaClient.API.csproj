@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>2.0.0</Version>
+    <Authors>YourCompany</Authors>
+    <Description>Cliente .NET para la API Watana Firmador que facilita la integración con servicios de firma digital</Description>
+    <Copyright>Copyright © 2025</Copyright>
+    <PackageProjectUrl>https://github.com/YourCompany/WatanaClient.API</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/YourCompany/WatanaClient.API</RepositoryUrl>
+    <PackageTags>watana;api;firma-digital;pdf</PackageTags>
+    <PackageReleaseNotes>
+      Version 2.0.0
+      - Rediseño completo de la biblioteca
+      - Soporte para .NET Core 8
+      - Nuevo manejo de errores
+      - Mejoras en seguridad y rendimiento
+      - Implementación de todos los métodos de la API Watana Firmador
+    </PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.3" />
+    <PackageReference Include="Polly" Version="8.5.2" />
+    <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.3" />
+  </ItemGroup>
+
+</Project>
