@@ -37,7 +37,8 @@ public static class ServiceCollectionExtensions
         // Register repositories
         services.AddScoped<IDocumentRepository, SharePointDocumentRepository>();
         services.AddScoped<ISignatureProcessRepository, WatanaSignatureProcessRepository>();
-        
+        services.AddScoped<ISignatureTrackingRepository, SharePointSignatureTrackingRepository>();
+
         // Register Watana Client
         services.AddWatanaClient(configuration, "SignatureProvider");
         

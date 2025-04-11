@@ -17,6 +17,7 @@ public class SignatureProcessService : ISignatureProcessService
     private readonly IValidator<SignatureProcessRequest> _validator;
     private readonly IDocumentRepository _documentRepository;
     private readonly ISignatureProcessRepository _signatureProcessRepository;
+    private readonly ISignatureTrackingRepository _trackingRepository; 
     private readonly ILogger<SignatureProcessService> _logger;
 
     /// <summary>
@@ -30,11 +31,13 @@ public class SignatureProcessService : ISignatureProcessService
         IValidator<SignatureProcessRequest> validator,
         IDocumentRepository documentRepository,
         ISignatureProcessRepository signatureProcessRepository,
+        ISignatureTrackingRepository trackingRepository,
         ILogger<SignatureProcessService> logger)
     {
         _validator = validator ?? throw new ArgumentNullException(nameof(validator));
         _documentRepository = documentRepository ?? throw new ArgumentNullException(nameof(documentRepository));
         _signatureProcessRepository = signatureProcessRepository ?? throw new ArgumentNullException(nameof(signatureProcessRepository));
+        _trackingRepository = trackingRepository ?? throw new ArgumentNullException(nameof(trackingRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -110,6 +113,18 @@ public class SignatureProcessService : ISignatureProcessService
                 "InProgress",
                 processId,
                 cancellationToken);
+
+            await _trackingRepository.RegisterTrackingAsync(
+               processId,
+               request.Metadata.Subject,
+               request.Metadata.Message,
+               request.Document.Id,
+               request.Document.WebUrl,
+               request.Document.LibraryName,
+               request.Signers.Select(s => s.Email),
+               request.Recipients?.Select(r => r.Email) ?? new List<string>(),
+               "", 
+               cancellationToken);
 
             // Return response
             return new SignatureProcessResponse

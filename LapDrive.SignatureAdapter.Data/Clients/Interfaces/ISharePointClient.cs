@@ -34,4 +34,15 @@ public interface ISharePointClient
     /// <param name="metadata">The metadata to update</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     Task UpdateItemMetadataAsync(string webUrl, string libraryName, string itemId, Dictionary<string, object> metadata, CancellationToken cancellationToken = default);
+
+    // Añadir a LapDrive.SignatureAdapter.Data/Clients/Interfaces/ISharePointClient.cs
+    /// <summary>
+    /// Creates a new list item in SharePoint
+    /// </summary>
+    /// <param name="webUrl">The SharePoint web URL</param>
+    /// <param name="listName">The list name</param>
+    /// <param name="metadata">The metadata to set on the item</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>The ID of the created item</returns>
+    Task<int> CreateListItemAsync(string webUrl, string listName, Dictionary<string, object> metadata, CancellationToken cancellationToken = default);
 }

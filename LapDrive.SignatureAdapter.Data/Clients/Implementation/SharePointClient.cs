@@ -144,4 +144,34 @@ public class SharePointClient : ISharePointClient
             throw new DataException($"Error updating item metadata: {ex.Message}", ex);
         }
     }
+
+    // Añadir a LapDrive.SignatureAdapter.Data/Clients/Implementation/SharePointClient.cs
+    /// <inheritdoc/>
+    public async Task<int> CreateListItemAsync(string webUrl, string listName, Dictionary<string, object> metadata, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var context = _contextFactory.CreateContext(webUrl);
+            var web = context.Web;
+            var list = web.Lists.GetByTitle(listName);
+
+            var itemCreateInfo = new ListItemCreationInformation();
+            var item = list.AddItem(itemCreateInfo);
+
+            foreach (var kvp in metadata)
+            {
+                item[kvp.Key] = kvp.Value;
+            }
+
+            item.Update();
+            await context.ExecuteQueryAsync();
+
+            return item.Id;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating list item in {WebUrl}/{ListName}", webUrl, listName);
+            throw new DataException($"Error creating list item: {ex.Message}", ex);
+        }
+    }
 }
