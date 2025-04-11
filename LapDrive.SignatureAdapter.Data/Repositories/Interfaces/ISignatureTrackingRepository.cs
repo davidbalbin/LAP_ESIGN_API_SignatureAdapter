@@ -1,4 +1,6 @@
-﻿namespace LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
+﻿using LapDrive.SignatureAdapter.Models.Entities;
+
+namespace LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
 
 /// <summary>
 /// Repository for tracking signature processes
@@ -30,4 +32,12 @@ public interface ISignatureTrackingRepository
         IEnumerable<string> recipients,
         string signingUrl,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets tracking information for a signature process
+    /// </summary>
+    /// <param name="processId">The ID of the signature process</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>The tracking information</returns>
+    Task<SignatureProcessTracking?> GetTrackingAsync(string processId, CancellationToken cancellationToken = default);
 }

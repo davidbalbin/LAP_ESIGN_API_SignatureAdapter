@@ -70,4 +70,42 @@ public class SignatureProcessController : ControllerBase
             new { id = result.ProcessId },
             result);
     }
+
+    /// <summary>
+    /// Gets a signature process by its ID
+    /// </summary>
+    /// <param name="id">The ID of the signature process</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>The signature process information</returns>
+    /// <response code="200">Returns the signature process</response>
+    /// <response code="404">If the signature process is not found</response>
+    /// <response code="500">If an error occurs during processing</response>
+    [HttpGet("{id}")]
+    [SwaggerOperation(
+        Summary = "Gets a signature process by its ID",
+        Description = "Retrieves detailed information about a specific signature process",
+        OperationId = "GetSignatureProcess",
+        Tags = new[] { "Signature Processes" }
+    )]
+    [SwaggerResponse((int)HttpStatusCode.OK, "Signature process retrieved successfully", typeof(SignatureProcessDetailResponse))]
+    [SwaggerResponse((int)HttpStatusCode.NotFound, "Signature process not found")]
+    [SwaggerResponse((int)HttpStatusCode.InternalServerError, "Internal server error")]
+    [ProducesResponseType(typeof(SignatureProcessDetailResponse), (int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+    public async Task<IActionResult> GetSignatureProcess(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Getting signature process with ID {ProcessId}", id);
+
+        var result = await _signatureProcessService.GetSignatureProcessAsync(id, cancellationToken);
+
+        if (result == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result);
+    }
 }

@@ -1,5 +1,6 @@
 using LapDrive.SignatureAdapter.Data.Clients.Interfaces;
 using LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
+using LapDrive.SignatureAdapter.Models.DTOs.Response;
 using LapDrive.SignatureAdapter.Models.Entities;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -47,4 +48,29 @@ public class WatanaSignatureProcessRepository : ISignatureProcessRepository
         }
     }
 
+    /// <inheritdoc/>
+    /// <inheritdoc/>
+    public async Task<SignatureProcessStatusResponse?> GetSignatureProcessStatusAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Getting signature process status for ID {ProcessId}", processId);
+
+            var status = await _signatureProviderClient.GetSignatureProcessStatusAsync(processId, cancellationToken);
+
+            // Si no se encontró el proceso, retornamos null
+            if (status == null)
+            {
+                _logger.LogWarning("Signature process with ID {ProcessId} was not found", processId);
+                return null;
+            }
+
+            return status;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting signature process status for ID {ProcessId}", processId);
+            throw new DataException($"Error getting signature process status: {ex.Message}", ex);
+        }
+    }
 }

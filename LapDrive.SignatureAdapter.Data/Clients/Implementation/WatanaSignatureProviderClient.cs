@@ -10,6 +10,8 @@ using WatanaClient.API.Models.Requests;
 using System.Text;
 using WatanaClient.API.Services;
 using System.IO.Compression;
+using LapDrive.SignatureAdapter.Models.DTOs.Response;
+using WatanaClient.API.Models.Responses;
 
 namespace LapDrive.SignatureAdapter.Data.Clients.Implementation;
 
@@ -159,6 +161,71 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         }
         
         return enviarResponse.FirmaCodigo;
+    }
+
+    /// <inheritdoc/>
+    public async Task<SignatureProcessStatusResponse?> GetSignatureProcessStatusAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Getting status for signature process {ProcessId}", processId);
+
+            var response = await _watanaClient.Solicitudes.ConsultarSolicitudAsync(processId, cancellationToken);
+
+            // Si la respuesta no tiene solicitudes, consideramos que no se encontró el proceso
+            if (response.Solicitudes == null || !response.Solicitudes.Any())
+            {
+                _logger.LogWarning("Signature process with ID {ProcessId} was not found", processId);
+                return null;
+            }
+
+            // Map the response to SignatureProcessStatusResponse
+            var statusResponse = new SignatureProcessStatusResponse
+            {
+                Estado = GetEstadoFromSolicitudes(response.Solicitudes),
+                Titulo = response.Solicitudes.FirstOrDefault()?.Solicitante ?? string.Empty,
+                EnlaceParaFirmar = string.Empty, // Este dato puede no estar disponible en la respuesta
+                Firmantes = response.Solicitudes
+                    .Select(s => new FirmanteInfo
+                    {
+                        Email = s.Firmante,
+                        NombreCompleto = s.Firmante, // No hay nombre completo en la respuesta
+                        Estado = s.Estado,
+                        FechaFirma = null // No hay fecha en la respuesta
+                    })
+                    .ToList()
+            };
+
+            return statusResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting status for signature process {ProcessId}", processId);
+            throw new DataException($"Error getting signature process status: {ex.Message}", ex);
+        }
+    }
+
+    private string GetEstadoFromSolicitudes(List<SolicitudDetail> solicitudes)
+    {
+        if (solicitudes == null || !solicitudes.Any())
+        {
+            return "not_found";
+        }
+
+        // If all solicitudes are finalized, the process is finalized
+        if (solicitudes.All(s => s.Estado == "firmado"))
+        {
+            return "firmado";
+        }
+
+        // If any solicitude is rejected, the process is rejected
+        if (solicitudes.Any(s => s.Estado == "rechazado-por-firmante"))
+        {
+            return "rechazado-por-firmante";
+        }
+
+        // Otherwise, the process is in progress
+        return "en-proceso";
     }
 
     private string GetDefaultLogoBase64()

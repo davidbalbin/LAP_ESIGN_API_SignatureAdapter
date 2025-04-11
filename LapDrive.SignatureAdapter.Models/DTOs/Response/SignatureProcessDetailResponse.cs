@@ -54,12 +54,6 @@ public class SignatureProcessDetailResponse
     /// </summary>
     [JsonPropertyName("recipients")]
     public List<RecipientDetail>? Recipients { get; set; }
-
-    /// <summary>
-    /// Gets or sets the signing URL
-    /// </summary>
-    [JsonPropertyName("signingUrl")]
-    public string? SigningUrl { get; set; }
 }
 
 /// <summary>

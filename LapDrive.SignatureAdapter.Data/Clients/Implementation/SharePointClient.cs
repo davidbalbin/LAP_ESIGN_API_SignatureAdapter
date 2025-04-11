@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SharePoint.Client;
 using System.IO.Compression;
+using static LapDrive.SignatureAdapter.Data.Clients.Interfaces.ISharePointClient;
 
 namespace LapDrive.SignatureAdapter.Data.Clients.Implementation;
 
@@ -172,6 +173,92 @@ public class SharePointClient : ISharePointClient
         {
             _logger.LogError(ex, "Error creating list item in {WebUrl}/{ListName}", webUrl, listName);
             throw new DataException($"Error creating list item: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<ListItemData?> GetListItemByFieldValueAsync(
+        string webUrl,
+        string listName,
+        string fieldName,
+        string fieldValue,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(webUrl))
+        {
+            throw new ArgumentNullException(nameof(webUrl));
+        }
+
+        if (string.IsNullOrEmpty(listName))
+        {
+            throw new ArgumentNullException(nameof(listName));
+        }
+
+        if (string.IsNullOrEmpty(fieldName))
+        {
+            throw new ArgumentNullException(nameof(fieldName));
+        }
+
+        try
+        {
+            using var clientContext = _contextFactory.CreateContext(webUrl);
+            var list = clientContext.Web.Lists.GetByTitle(listName);
+
+            // Create a CAML query to find the item with the specified field value
+            var camlQuery = new CamlQuery
+            {
+                ViewXml = $@"<View>
+                          <Query>
+                            <Where>
+                              <Eq>
+                                <FieldRef Name='{fieldName}'/>
+                                <Value Type='Text'>{fieldValue}</Value>
+                              </Eq>
+                            </Where>
+                          </Query>
+                          <RowLimit>1</RowLimit>
+                        </View>"
+            };
+
+            var items = list.GetItems(camlQuery);
+            clientContext.Load(items);
+            await EnsureSuccessAsync(clientContext.ExecuteQueryAsync());
+
+            if (items.Count == 0)
+            {
+                return null;
+            }
+
+            var item = items[0];
+            clientContext.Load(item);
+            await EnsureSuccessAsync(clientContext.ExecuteQueryAsync());
+
+            var listItemData = new ListItemData();
+            foreach (var valuePair in item.FieldValues)
+            {
+                listItemData.SetValue(valuePair.Key, valuePair.Value);
+            }
+
+            return listItemData;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting list item by field value from {WebUrl}/{ListName}", webUrl, listName);
+            throw new DataException($"Error getting list item: {ex.Message}", ex);
+        }
+    }
+
+    // Helper method to ensure that the query executes successfully or throw a descriptive exception
+    private async Task EnsureSuccessAsync(Task task)
+    {
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SharePoint query execution failed");
+            throw new DataException("SharePoint operation failed", ex);
         }
     }
 }

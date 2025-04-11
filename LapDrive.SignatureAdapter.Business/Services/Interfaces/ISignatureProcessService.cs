@@ -15,4 +15,12 @@ public interface ISignatureProcessService
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns>The created signature process information</returns>
     Task<SignatureProcessResponse> CreateSignatureProcessAsync(SignatureProcessRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a signature process by its ID
+    /// </summary>
+    /// <param name="processId">The ID of the signature process</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>The signature process details or null if not found</returns>
+    Task<SignatureProcessDetailResponse?> GetSignatureProcessAsync(string processId, CancellationToken cancellationToken = default);
 }

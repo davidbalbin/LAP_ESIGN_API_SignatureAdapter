@@ -1,5 +1,6 @@
 ﻿using LapDrive.SignatureAdapter.Data.Clients.Interfaces;
 using LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
+using LapDrive.SignatureAdapter.Models.Entities;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -78,4 +79,49 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
             throw new DataException($"Error registering tracking information: {ex.Message}", ex);
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<SignatureProcessTracking?> GetTrackingAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Getting tracking information for signature process {ProcessId}", processId);
+
+            var trackingSiteUrl = "https://lapperu.sharepoint.com/sites/dkmt365/firmas";
+
+            // Get tracking item from the list by its CircuitID field
+            var trackingItem = await _sharePointClient.GetListItemByFieldValueAsync(
+                trackingSiteUrl,
+                TrackingListName,
+                "CircuitID",
+                processId,
+                cancellationToken);
+
+            if (trackingItem == null)
+            {
+                _logger.LogWarning("No tracking information found for process {ProcessId}", processId);
+                return null;
+            }
+
+            // Map SharePoint list item to tracking object
+            return new SignatureProcessTracking
+            {
+                ProcessId = processId,
+                CreatedAt = trackingItem.GetDateTimeValue("Created") ?? DateTime.UtcNow,
+                Subject = trackingItem.GetStringValue("Asunto") ?? string.Empty,
+                Message = trackingItem.GetStringValue("Mensaje") ?? string.Empty,
+                DocumentId = trackingItem.GetStringValue("DocId") ?? string.Empty,
+                WebUrl = trackingItem.GetStringValue("SiteUrl") ?? string.Empty,
+                LibraryName = trackingItem.GetStringValue("List") ?? string.Empty,
+                Signers = trackingItem.GetStringValue("Firmantes")?.Split(',').ToList() ?? new List<string>(),
+                Recipients = trackingItem.GetStringValue("Destinatarios")?.Split(',').ToList() ?? new List<string>()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tracking information for process {ProcessId}", processId);
+            throw new DataException($"Error getting tracking information: {ex.Message}", ex);
+        }
+    }
+
 }

@@ -140,4 +140,82 @@ public class SignatureProcessService : ISignatureProcessService
             throw new DataException("An error occurred while creating the signature process", ex);
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<SignatureProcessDetailResponse?> GetSignatureProcessAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(processId))
+        {
+            throw new ArgumentNullException(nameof(processId));
+        }
+
+        try
+        {
+            // Get process status from Watana
+            var signatureProcessStatus = await _signatureProcessRepository.GetSignatureProcessStatusAsync(processId, cancellationToken);
+
+            if (signatureProcessStatus == null)
+            {
+                return null;
+            }
+
+            // Get tracking information from SharePoint
+            var trackingInfo = await _trackingRepository.GetTrackingAsync(processId, cancellationToken);
+
+            if (trackingInfo == null)
+            {
+                // If no tracking info is found, we can still return basic process info
+                return new SignatureProcessDetailResponse
+                {
+                    ProcessId = processId,
+                    Status = signatureProcessStatus.Estado,
+                    CreatedAt = DateTime.UtcNow, // No way to know exact creation time without tracking
+                    Subject = signatureProcessStatus.Titulo,
+                    Message = string.Empty,
+                    Signers = signatureProcessStatus.Firmantes.Select(f => new SignerDetail
+                    {
+                        DisplayName = f.NombreCompleto,
+                        Email = f.Email,
+                        Status = f.Estado,
+                        SignatureDate = f.FechaFirma
+                    }).ToList()
+                };
+            }
+
+            // Map tracking info and status to detailed response
+            return new SignatureProcessDetailResponse
+            {
+                ProcessId = processId,
+                Status = signatureProcessStatus.Estado,
+                CreatedAt = trackingInfo.CreatedAt,
+                Subject = trackingInfo.Subject,
+                Message = trackingInfo.Message,
+                Document = new DocumentDetail
+                {
+                    Id = trackingInfo.DocumentId,
+                    Name = Path.GetFileName(trackingInfo.DocumentId),
+                    LibraryName = trackingInfo.LibraryName,
+                    WebUrl = trackingInfo.WebUrl,
+                    Type = "file" // Default to file
+                },
+                Signers = signatureProcessStatus.Firmantes.Select(f => new SignerDetail
+                {
+                    DisplayName = f.NombreCompleto,
+                    Email = f.Email,
+                    Status = f.Estado,
+                    SignatureDate = f.FechaFirma
+                }).ToList(),
+                Recipients = trackingInfo.Recipients.Select(r => new RecipientDetail
+                {
+                    DisplayName = r,
+                    Email = r
+                }).ToList()
+            };
+        }
+        catch (Exception ex) when (ex is not BusinessException)
+        {
+            _logger.LogError(ex, "Error getting signature process with ID {ProcessId}", processId);
+            throw new DataException($"Error getting signature process: {ex.Message}", ex);
+        }
+    }
 }
