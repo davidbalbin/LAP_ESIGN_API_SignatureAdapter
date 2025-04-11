@@ -14,12 +14,4 @@ public interface ISignatureProcessRepository
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns>The ID of the created signature process</returns>
     Task<string> CreateSignatureProcessAsync(SignatureProcess signatureProcess, CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Gets the signing URL for a signature process
-    /// </summary>
-    /// <param name="processId">The signature process ID</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
-    /// <returns>The signing URL</returns>
-    Task<string> GetSigningUrlAsync(string processId, CancellationToken cancellationToken = default);
 }

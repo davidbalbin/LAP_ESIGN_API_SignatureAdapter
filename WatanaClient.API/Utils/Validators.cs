@@ -21,13 +21,6 @@ namespace WatanaClient.API.Utils
             if (string.IsNullOrEmpty(carpetaCodigo))
                 throw new WatanaValidationException("El código de carpeta es obligatorio", nameof(carpetaCodigo));
 
-            if (carpetaCodigo.Length < WatanaConstants.Limites.MinLongitudCodigoCarpeta ||
-                carpetaCodigo.Length > WatanaConstants.Limites.MaxLongitudCodigoCarpeta)
-                throw new WatanaValidationException(
-                    $"El código de carpeta debe tener entre {WatanaConstants.Limites.MinLongitudCodigoCarpeta} y {WatanaConstants.Limites.MaxLongitudCodigoCarpeta} caracteres",
-                    nameof(carpetaCodigo)
-                );
-
             // Validar que solo contenga caracteres alfanuméricos
             if (!Regex.IsMatch(carpetaCodigo, @"^[a-zA-Z0-9_\-]+$"))
                 throw new WatanaValidationException(

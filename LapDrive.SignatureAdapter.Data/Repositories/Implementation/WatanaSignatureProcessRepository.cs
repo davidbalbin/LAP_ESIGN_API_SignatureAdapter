@@ -47,21 +47,4 @@ public class WatanaSignatureProcessRepository : ISignatureProcessRepository
         }
     }
 
-    /// <inheritdoc/>
-    public async Task<string> GetSigningUrlAsync(string processId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("Getting signing URL for process {ProcessId}", processId);
-            
-            var signingUrl = await _signatureProviderClient.GetSigningUrlAsync(processId, cancellationToken);
-            
-            return signingUrl;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting signing URL for process {ProcessId}", processId);
-            throw new DataException($"Error getting signing URL: {ex.Message}", ex);
-        }
-    }
 }

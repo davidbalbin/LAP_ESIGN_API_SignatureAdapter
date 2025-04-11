@@ -24,10 +24,4 @@ public class SignatureProcessResponse
     /// </summary>
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the URL for signing the document
-    /// </summary>
-    [JsonPropertyName("signingUrl")]
-    public string SigningUrl { get; set; } = string.Empty;
 }

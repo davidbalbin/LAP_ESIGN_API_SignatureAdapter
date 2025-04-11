@@ -116,8 +116,7 @@ public class SignatureProcessService : ISignatureProcessService
             {
                 ProcessId = processId,
                 Status = "InProgress",
-                Message = "Signature process created successfully",
-                SigningUrl = await _signatureProcessRepository.GetSigningUrlAsync(processId, cancellationToken)
+                Message = "Signature process created successfully"
             };
         }
         catch (Exception ex) when (ex is not Models.Exceptions.ValidationException && ex is not BusinessException)

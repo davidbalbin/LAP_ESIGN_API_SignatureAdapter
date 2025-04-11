@@ -45,7 +45,7 @@ namespace WatanaClient.API.Models.Common
         /// &lt;FIRMANTE&gt;, &lt;ORGANIZACION&gt;, &lt;TITULO&gt;, &lt;CORREO&gt;, &lt;DIRECCION&gt;, &lt;FECHA&gt;
         /// </remarks>
         [JsonPropertyName("texto")]
-        public string Texto { get; set; } = "Firmado digitalmente por: <FIRMANTE>\r\n<ORGANIZACION>\r\n<TITULO>\r\n<CORREO>\r\n<DIRECCION>\r\n<FECHA>\r\n Firmado";
+        public string Texto { get; set; } = "Firmado por: <FIRMANTE>\r\n<ORGANIZACION>\r\n<TITULO>\r\n<CORREO>\r\nMotivo: Firma Digital\r\nFecha: <FECHA>";
 
         /// <summary>
         /// Imagen para la representación impresa (opcional), zipeada en base64

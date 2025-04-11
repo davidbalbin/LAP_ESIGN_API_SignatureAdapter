@@ -62,7 +62,8 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
                     CarpetaCodigo = signatureProcess.RequestId,
                     Titulo = signatureProcess.Subject,
                     Descripcion = signatureProcess.Message,
-                    VigenciaHoras = 48, // Default 48 hours
+                    VigenciaHoras = 168, // Default 168 hoursç
+                    SelloTiempo = false,
                     Firmante = new Firmante
                     {
                         Email = signatureProcess.Signers.First().Email,
@@ -95,45 +96,6 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         {
             _logger.LogError(ex, "Error creating signature process with Watana");
             throw new DataException($"Error creating signature process with Watana: {ex.Message}", ex);
-        }
-    }
-
-    /// <inheritdoc/>
-    public async Task<string> GetSigningUrlAsync(string processId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(processId, nameof(processId));
-
-        try
-        {
-            _logger.LogInformation("Getting signing URL for process {ProcessId}", processId);
-
-            // Get carpeta response
-            var response = await _watanaClient.Carpetas.ConsultarCarpetaAsync(processId, cancellationToken);
-
-            if (!response.Success)
-            {
-                throw new DataException($"Error consultando carpeta en Watana: {response.Mensaje}");
-            }
-
-            // Use the same request to get the signing URL
-            var carpetaRequest = new EnviarCarpetaRequest
-            {
-                CarpetaCodigo = response.SolicitudNumero
-            };
-
-            var enlaceResponse = await _watanaClient.Carpetas.EnviarCarpetaAsync(carpetaRequest, cancellationToken);
-
-            if (!enlaceResponse.Success)
-            {
-                throw new DataException($"Error obteniendo enlace de firma en Watana: {enlaceResponse.Mensaje}");
-            }
-
-            return enlaceResponse.EnlaceParaFirmar ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting signing URL for process {ProcessId}", processId);
-            throw new DataException($"Error getting signing URL: {ex.Message}", ex);
         }
     }
 
@@ -226,46 +188,58 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         return enviarResponse.FirmaCodigo;
     }
 
+    private string GetDefaultLogoBase64()
+    {
+        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "logo.jpeg");
+        if (!File.Exists(logoPath))
+        {
+            _logger.LogWarning("Logo file not found at {Path}", logoPath);
+            return string.Empty;
+        }
+
+        try
+        {
+            var imageBytes = File.ReadAllBytes(logoPath);
+            return Convert.ToBase64String(ZipDocument(imageBytes, "logo.jpeg"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reading logo file");
+            return string.Empty;
+        }
+    }
+
     private FirmaVisual GetFirmaVisual(SignatureInfo signatureInfo)
     {
+        var firmaVisual = new FirmaVisual
+        {
+            Largo = 160,
+            Alto = 40,
+            Pagina = signatureInfo.PageNumber,
+            Texto = "Firmado por: <FIRMANTE>\r\n<ORGANIZACION>\r\n<TITULO>\r\n<CORREO>\r\nMotivo: Firma Digital\r\nFecha: <FECHA>",
+            ImageZipBase64 = GetDefaultLogoBase64()
+        };
+
         // Si hay una posición predefinida, permite al firmante posicionar manualmente
         if (!string.IsNullOrEmpty(signatureInfo.Position))
         {
-            return new FirmaVisual
-            {
-                UbicacionX = 0,
-                UbicacionY = 0,
-                Largo = 300,
-                Alto = 40,
-                Pagina = signatureInfo.PageNumber,
-                Texto = "Firmado digitalmente por: <FIRMANTE>\r\n<FECHA>"
-            };
+            firmaVisual.UbicacionX = 0;
+            firmaVisual.UbicacionY = 0;
         }
-        
         // Si se proporcionan coordenadas X e Y específicas
-        if (signatureInfo.X.HasValue && signatureInfo.Y.HasValue)
+        else if (signatureInfo.X.HasValue && signatureInfo.Y.HasValue)
         {
-            return new FirmaVisual
-            {
-                UbicacionX = signatureInfo.X.Value,
-                UbicacionY = signatureInfo.Y.Value,
-                Largo = 300,
-                Alto = 40,
-                Pagina = signatureInfo.PageNumber,
-                Texto = "Firmado digitalmente por: <FIRMANTE>\r\n<FECHA>"
-            };
+            firmaVisual.UbicacionX = signatureInfo.X.Value;
+            firmaVisual.UbicacionY = signatureInfo.Y.Value;
         }
-        
         // Posicionamiento automático por defecto
-        return new FirmaVisual
+        else
         {
-            UbicacionX = 50,
-            UbicacionY = 50,
-            Largo = 300,
-            Alto = 40,
-            Pagina = signatureInfo.PageNumber,
-            Texto = "Firmado digitalmente por: <FIRMANTE>\r\n<FECHA>"
-        };
+            firmaVisual.UbicacionX = 50;
+            firmaVisual.UbicacionY = 50;
+        }
+
+        return firmaVisual;
     }
 
     private byte[] ZipDocument(byte[] documentContent, string documentName)
