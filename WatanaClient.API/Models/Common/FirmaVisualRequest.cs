@@ -29,7 +29,7 @@ namespace WatanaClient.API.Models.Common
         /// Largo de la representación visual de la firma
         /// </summary>
         [JsonPropertyName("largo")]
-        public int Largo { get; set; } = 300;
+        public int Largo { get; set; } = 160;
 
         /// <summary>
         /// Alto de la representación visual de la firma

@@ -45,52 +45,9 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         {
             _logger.LogInformation("Creating signature process with Watana");
             
-            // Map document to Watana model
-            var isFolder = signatureProcess.Document.Type == Models.Enums.DocumentType.Folder;
-            
-            if (isFolder)
-            {
-                // For folders, use the preparar_solicitud and enviar_solicitud approach
-                var processId = await PrepareAndSendFolderAsync(signatureProcess, cancellationToken);
-                return processId;
-            }
-            else
-            {
-                // For single files, use the enviar_carpeta approach
-                var request = new EnviarCarpetaRequest
-                {
-                    CarpetaCodigo = signatureProcess.RequestId,
-                    Titulo = signatureProcess.Subject,
-                    Descripcion = signatureProcess.Message,
-                    VigenciaHoras = 168, // Default 168 hoursç
-                    SelloTiempo = false,
-                    Firmante = new Firmante
-                    {
-                        Email = signatureProcess.Signers.First().Email,
-                        NombreCompleto = signatureProcess.Signers.First().DisplayName
-                    },
-                    Archivos = new List<Archivo>
-                    {
-                        new Archivo
-                        {
-                            Nombre = signatureProcess.Document.Name ?? throw new ArgumentNullException(nameof(signatureProcess.Document.Name)),
-                            ZipBase64 = Convert.ToBase64String(ZipDocument(
-                                signatureProcess.Document.Content ?? throw new ArgumentNullException(nameof(signatureProcess.Document.Content)),
-                                signatureProcess.Document.Name ?? throw new ArgumentNullException(nameof(signatureProcess.Document.Name)))),
-                            FirmaVisual = GetFirmaVisual(signatureProcess.Signers.First().SignatureInfo)
-                        }
-                    }
-                };
-                
-                var response = await _watanaClient.Carpetas.EnviarCarpetaAsync(request, cancellationToken);
-                
-                if (!response.Success)
-                {
-                    throw new DataException($"Error from Watana API: {response.Mensaje}");
-                }
-                
-                return response.SolicitudNumero;
-            }
+            // Always use preparar_solicitud and enviar_solicitud approach for both single files and folders
+            var processId = await PrepareAndSendFolderAsync(signatureProcess, cancellationToken);
+            return processId;
         }
         catch (Exception ex)
         {
@@ -105,24 +62,39 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         var archivos = new List<Archivo>();
         
         ArgumentNullException.ThrowIfNull(signatureProcess.Document?.Content, nameof(signatureProcess.Document.Content));
-        using (var zipArchive = new ZipArchive(new MemoryStream(signatureProcess.Document.Content), ZipArchiveMode.Read))
+        
+        if (signatureProcess.Document.Type == Models.Enums.DocumentType.Folder)
         {
-            foreach (var entry in zipArchive.Entries)
+            // Process ZIP file containing multiple PDFs
+            using (var zipArchive = new ZipArchive(new MemoryStream(signatureProcess.Document.Content), ZipArchiveMode.Read))
             {
-                if (entry.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                foreach (var entry in zipArchive.Entries)
                 {
-                    using var entryStream = entry.Open();
-                    using var memoryStream = new MemoryStream();
-                    await entryStream.CopyToAsync(memoryStream, cancellationToken);
-                    var fileBytes = memoryStream.ToArray();
-                    
-                    archivos.Add(new Archivo
+                    if (entry.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                     {
-                        Nombre = entry.Name,
-                        ZipBase64 = Convert.ToBase64String(ZipDocument(fileBytes, entry.Name))
-                    });
+                        using var entryStream = entry.Open();
+                        using var memoryStream = new MemoryStream();
+                        await entryStream.CopyToAsync(memoryStream, cancellationToken);
+                        var fileBytes = memoryStream.ToArray();
+                        
+                        archivos.Add(new Archivo
+                        {
+                            Nombre = entry.Name,
+                            ZipBase64 = Convert.ToBase64String(ZipDocument(fileBytes, entry.Name))
+                        });
+                    }
                 }
             }
+        }
+        else
+        {
+            // Process single PDF file
+            ArgumentException.ThrowIfNullOrEmpty(signatureProcess.Document.Name);
+            archivos.Add(new Archivo
+            {
+                Nombre = signatureProcess.Document.Name,
+                ZipBase64 = Convert.ToBase64String(ZipDocument(signatureProcess.Document.Content, signatureProcess.Document.Name))
+            });
         }
         
         var prepararRequest = new PrepararSolicitudRequest
@@ -153,11 +125,12 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
                     Archivo = archivo.Nombre,
                     UbicacionX = signer.SignatureInfo.X ?? 50,
                     UbicacionY = signer.SignatureInfo.Y ?? 50,
-                    Largo = 300,
+                    Largo = 160,
                     Alto = 40,
                     Pagina = signer.SignatureInfo.PageNumber,
-                    Texto = "Firmado digitalmente por: <FIRMANTE>\r\n<FECHA>",
-                    Motivo = "Firma Digital"
+                    Texto = "Firmado por: <FIRMANTE>\r\n<ORGANIZACION>\r\n<TITULO>\r\n<CORREO>\r\nMotivo: Firma Digital\r\nFecha: <FECHA>",
+                    Motivo = "Firma Digital",
+                    ImageZipBase64 = GetDefaultLogoBase64()
                 });
             }
             
@@ -165,7 +138,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
             {
                 Email = signer.Email,
                 NombreCompleto = signer.DisplayName,
-                SelloTiempo = true,
+                SelloTiempo = false,
                 Firmas = firmas
             });
         }
@@ -174,7 +147,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         {
             CarpetaCodigo = signatureProcess.RequestId,
             FirmaCodigo = $"F{DateTime.Now:yyyyMMddHHmmss}",
-            VigenciaHoras = 48,
+            VigenciaHoras = 168,
             Firmantes = firmantes
         };
         
