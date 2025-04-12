@@ -46,6 +46,18 @@ public interface ISharePointClient
     /// <returns>The ID of the created item</returns>
     Task<int> CreateListItemAsync(string webUrl, string listName, Dictionary<string, object> metadata, CancellationToken cancellationToken = default);
 
+
+    /// <summary>
+    /// Updates a list item in the specified SharePoint list
+    /// </summary>
+    /// <param name="webUrl">The SharePoint web URL</param>
+    /// <param name="listName">The name of the list</param>
+    /// <param name="itemId">The ID of the item to update</param>
+    /// <param name="fieldValues">Dictionary of field names and values to update</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>A task representing the asynchronous operation</returns>
+    Task UpdateListItemAsync(string webUrl, string listName, int itemId, Dictionary<string, object> fieldValues, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Gets a list item by field value
     /// </summary>
@@ -55,7 +67,7 @@ public interface ISharePointClient
     /// <param name="fieldValue">The field value to match</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns>The list item, or null if not found</returns>
-    Task<ListItemData?> GetListItemByFieldValueAsync(
+    Task<SharePointListItem?> GetListItemByFieldValueAsync(
         string webUrl,
         string listName,
         string fieldName,
@@ -177,6 +189,65 @@ public interface ISharePointClient
         public IReadOnlyDictionary<string, object> GetAllValues()
         {
             return _fieldValues;
+        }
+    }
+
+    /// <summary>
+    /// Represents a SharePoint list item
+    /// </summary>
+    public class SharePointListItem
+    {
+        /// <summary>
+        /// Gets or sets the ID of the list item
+        /// </summary>
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the title of the list item
+        /// </summary>
+        public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the field values of the list item
+        /// </summary>
+        public Dictionary<string, object> FieldValues { get; set; } = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Gets a string value from the field values
+        /// </summary>
+        /// <param name="fieldName">The name of the field</param>
+        /// <returns>The string value or null if not found</returns>
+        public string? GetStringValue(string fieldName)
+        {
+            if (FieldValues.TryGetValue(fieldName, out var value))
+            {
+                return value?.ToString();
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a DateTime value from the field values
+        /// </summary>
+        /// <param name="fieldName">The name of the field</param>
+        /// <returns>The DateTime value or null if not found or not a valid date</returns>
+        public DateTime? GetDateTimeValue(string fieldName)
+        {
+            if (FieldValues.TryGetValue(fieldName, out var value) && value != null)
+            {
+                if (value is DateTime dateTime)
+                {
+                    return dateTime;
+                }
+
+                if (DateTime.TryParse(value.ToString(), out var parsedDateTime))
+                {
+                    return parsedDateTime;
+                }
+            }
+
+            return null;
         }
     }
 }

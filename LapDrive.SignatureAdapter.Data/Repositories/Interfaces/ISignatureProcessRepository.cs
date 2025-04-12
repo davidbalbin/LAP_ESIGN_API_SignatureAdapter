@@ -23,4 +23,12 @@ public interface ISignatureProcessRepository
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns>The status information of the process</returns>
     Task<SignatureProcessStatusResponse?> GetSignatureProcessStatusAsync(string processId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cancels a signature process
+    /// </summary>
+    /// <param name="processId">The ID of the process to cancel</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>True if the process was canceled successfully, false otherwise</returns>
+    Task<bool> CancelSignatureProcessAsync(string processId, CancellationToken cancellationToken = default);
 }

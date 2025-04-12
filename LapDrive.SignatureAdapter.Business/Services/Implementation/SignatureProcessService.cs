@@ -218,4 +218,68 @@ public class SignatureProcessService : ISignatureProcessService
             throw new DataException($"Error getting signature process: {ex.Message}", ex);
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<bool> CancelSignatureProcessAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(processId))
+        {
+            throw new ArgumentNullException(nameof(processId));
+        }
+
+        try
+        {
+            // Check if process exists and get its current status
+            var processStatus = await _signatureProcessRepository.GetSignatureProcessStatusAsync(processId, cancellationToken);
+
+            if (processStatus == null)
+            {
+                _logger.LogWarning("Signature process with ID {ProcessId} not found for cancellation", processId);
+                return false;
+            }
+
+            // Check if process can be canceled (only if it's in progress)
+            if (processStatus.Estado != "en-proceso" && processStatus.Estado != "en-espera")
+            {
+                throw new BusinessException($"Cannot cancel process with status '{processStatus.Estado}'. Only in-progress processes can be canceled.");
+            }
+
+            // Cancel the process in the signature provider
+            var canceled = await _signatureProcessRepository.CancelSignatureProcessAsync(processId, cancellationToken);
+
+            if (!canceled)
+            {
+                _logger.LogWarning("Failed to cancel signature process with ID {ProcessId}", processId);
+                return false;
+            }
+
+            // Get tracking information to update document status in SharePoint
+            var trackingInfo = await _trackingRepository.GetTrackingAsync(processId, cancellationToken);
+
+            if (trackingInfo != null)
+            {
+                // Update document status in SharePoint
+                await _documentRepository.UpdateDocumentStatusAsync(
+                    trackingInfo.WebUrl,
+                    trackingInfo.LibraryName,
+                    trackingInfo.DocumentId,
+                    "Canceled",
+                    processId,
+                    cancellationToken);
+
+                // Update tracking record
+                await _trackingRepository.UpdateTrackingStatusAsync(
+                    processId,
+                    "Canceled",
+                    cancellationToken);
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is not BusinessException)
+        {
+            _logger.LogError(ex, "Error canceling signature process with ID {ProcessId}", processId);
+            throw new DataException($"Error canceling signature process: {ex.Message}", ex);
+        }
+    }
 }

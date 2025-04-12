@@ -40,4 +40,13 @@ public interface ISignatureTrackingRepository
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns>The tracking information</returns>
     Task<SignatureProcessTracking?> GetTrackingAsync(string processId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the status of a signature process tracking record
+    /// </summary>
+    /// <param name="processId">The ID of the signature process</param>
+    /// <param name="status">The new status</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>A task representing the asynchronous operation</returns>
+    Task UpdateTrackingStatusAsync(string processId, string status, CancellationToken cancellationToken = default);
 }

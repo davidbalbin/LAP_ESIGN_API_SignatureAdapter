@@ -177,74 +177,113 @@ public class SharePointClient : ISharePointClient
     }
 
     /// <inheritdoc/>
-    public async Task<ListItemData?> GetListItemByFieldValueAsync(
-        string webUrl,
-        string listName,
-        string fieldName,
-        string fieldValue,
-        CancellationToken cancellationToken = default)
+    public async Task<SharePointListItem?> GetListItemByFieldValueAsync(string webUrl, string listName, string fieldName, string fieldValue, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(webUrl))
-        {
             throw new ArgumentNullException(nameof(webUrl));
-        }
 
         if (string.IsNullOrEmpty(listName))
-        {
             throw new ArgumentNullException(nameof(listName));
-        }
 
         if (string.IsNullOrEmpty(fieldName))
-        {
             throw new ArgumentNullException(nameof(fieldName));
-        }
+
+        if (string.IsNullOrEmpty(fieldValue))
+            throw new ArgumentNullException(nameof(fieldValue));
 
         try
         {
-            using var clientContext = _contextFactory.CreateContext(webUrl);
-            var list = clientContext.Web.Lists.GetByTitle(listName);
+            _logger.LogInformation("Getting item from list {ListName} on {WebUrl} where {FieldName}={FieldValue}",
+                listName, webUrl, fieldName, fieldValue);
 
-            // Create a CAML query to find the item with the specified field value
+            using var context = _contextFactory.CreateContext(webUrl);
+            var list = context.Web.Lists.GetByTitle(listName);
+
             var camlQuery = new CamlQuery
             {
                 ViewXml = $@"<View>
-                          <Query>
-                            <Where>
-                              <Eq>
-                                <FieldRef Name='{fieldName}'/>
-                                <Value Type='Text'>{fieldValue}</Value>
-                              </Eq>
-                            </Where>
-                          </Query>
-                          <RowLimit>1</RowLimit>
-                        </View>"
+                           <Query>
+                             <Where>
+                               <Eq>
+                                 <FieldRef Name='{fieldName}'/>
+                                 <Value Type='Text'>{fieldValue}</Value>
+                               </Eq>
+                             </Where>
+                           </Query>
+                           <RowLimit>1</RowLimit>
+                         </View>"
             };
 
             var items = list.GetItems(camlQuery);
-            clientContext.Load(items);
-            await EnsureSuccessAsync(clientContext.ExecuteQueryAsync());
+            context.Load(items);
+            await context.ExecuteQueryAsync();
 
             if (items.Count == 0)
             {
+                _logger.LogInformation("No item found in list {ListName} where {FieldName}={FieldValue}",
+                    listName, fieldName, fieldValue);
                 return null;
             }
 
             var item = items[0];
-            clientContext.Load(item);
-            await EnsureSuccessAsync(clientContext.ExecuteQueryAsync());
+            context.Load(item);
+            await context.ExecuteQueryAsync();
 
-            var listItemData = new ListItemData();
-            foreach (var valuePair in item.FieldValues)
+            var result = new SharePointListItem
             {
-                listItemData.SetValue(valuePair.Key, valuePair.Value);
+                Id = item.Id
+            };
+
+            // Load all field values
+            foreach (var fieldNameValue in item.FieldValues)
+            {
+                result.FieldValues[fieldNameValue.Key] = fieldNameValue.Value;
             }
 
-            return listItemData;
+            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting list item by field value from {WebUrl}/{ListName}", webUrl, listName);
-            throw new DataException($"Error getting list item: {ex.Message}", ex);
+            _logger.LogError(ex, "Error getting item from list {ListName} on {WebUrl} where {FieldName}={FieldValue}",
+                listName, webUrl, fieldName, fieldValue);
+            throw new DataException($"Error getting SharePoint list item: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateListItemAsync(string webUrl, string listName, int itemId, Dictionary<string, object> fieldValues, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(webUrl))
+            throw new ArgumentNullException(nameof(webUrl));
+
+        if (string.IsNullOrEmpty(listName))
+            throw new ArgumentNullException(nameof(listName));
+
+        if (fieldValues == null || !fieldValues.Any())
+            throw new ArgumentNullException(nameof(fieldValues), "Field values cannot be null or empty");
+
+        try
+        {
+            _logger.LogInformation("Updating item {ItemId} in list {ListName} on {WebUrl}", itemId, listName, webUrl);
+
+            using var context = _contextFactory.CreateContext(webUrl);
+            var list = context.Web.Lists.GetByTitle(listName);
+            var item = list.GetItemById(itemId);
+
+            foreach (var field in fieldValues)
+            {
+                item[field.Key] = field.Value;
+            }
+
+            item.Update();
+            await context.ExecuteQueryAsync();
+
+            _logger.LogInformation("Successfully updated item {ItemId} in list {ListName}", itemId, listName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating item {ItemId} in list {ListName} on {WebUrl}", itemId, listName, webUrl);
+            throw new DataException($"Error updating SharePoint list item: {ex.Message}", ex);
         }
     }
 

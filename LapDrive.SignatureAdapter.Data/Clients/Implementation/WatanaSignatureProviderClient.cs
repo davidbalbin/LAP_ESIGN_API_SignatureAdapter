@@ -205,6 +205,26 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         }
     }
 
+
+    /// <inheritdoc/>
+    public async Task<bool> CancelSignatureProcessAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Canceling signature process {ProcessId} using EliminarCarpeta", processId);
+
+            // Use the existing EliminarCarpeta operation to cancel the process
+            var response = await _watanaClient.Carpetas.EliminarCarpetaAsync(processId, cancellationToken);
+
+            return response.Success;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error canceling signature process {ProcessId}", processId);
+            throw new DataException($"Error canceling signature process: {ex.Message}", ex);
+        }
+    }
+
     private string GetEstadoFromSolicitudes(List<SolicitudDetail> solicitudes)
     {
         if (solicitudes == null || !solicitudes.Any())

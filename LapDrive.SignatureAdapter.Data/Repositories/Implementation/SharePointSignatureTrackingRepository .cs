@@ -124,4 +124,48 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
         }
     }
 
+    /// <inheritdoc/>
+    public async Task UpdateTrackingStatusAsync(string processId, string status, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Updating tracking status for process {ProcessId} to {Status}", processId, status);
+
+            var trackingSiteUrl = "https://lapperu.sharepoint.com/sites/dkmt365/firmas";
+
+            // Get the tracking item from SharePoint
+            var trackingItem = await _sharePointClient.GetListItemByFieldValueAsync(
+                trackingSiteUrl,
+                TrackingListName,
+                "CircuitID",
+                processId,
+                cancellationToken);
+
+            if (trackingItem == null)
+            {
+                _logger.LogWarning("No tracking record found for process {ProcessId}", processId);
+                return;
+            }
+
+            // Update the status in SharePoint
+            var metadata = new Dictionary<string, object>
+        {
+            { "Estado", status }
+        };
+
+            await _sharePointClient.UpdateListItemAsync(
+                trackingSiteUrl,
+                TrackingListName,
+                trackingItem.Id,
+                metadata,
+                cancellationToken);
+
+            _logger.LogInformation("Updated tracking status for process {ProcessId} to {Status}", processId, status);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating tracking status for process {ProcessId}", processId);
+            throw new DataException($"Error updating tracking status: {ex.Message}", ex);
+        }
+    }
 }

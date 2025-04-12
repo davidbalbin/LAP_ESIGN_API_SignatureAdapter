@@ -108,4 +108,47 @@ public class SignatureProcessController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Cancels a signature process by its ID
+    /// </summary>
+    /// <param name="id">The ID of the signature process to cancel</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <returns>No content if the process was canceled successfully</returns>
+    /// <response code="204">If the process was canceled successfully</response>
+    /// <response code="404">If the signature process is not found</response>
+    /// <response code="400">If the process cannot be canceled (e.g., already finalized)</response>
+    /// <response code="500">If an error occurs during processing</response>
+    [HttpDelete("{id}")]
+    [SwaggerOperation(
+        Summary = "Cancels a signature process",
+        Description = "Cancels an in-progress signature process identified by its ID",
+        OperationId = "CancelSignatureProcess",
+        Tags = new[] { "Signature Processes" }
+    )]
+    [SwaggerResponse((int)HttpStatusCode.NoContent, "Signature process canceled successfully")]
+    [SwaggerResponse((int)HttpStatusCode.NotFound, "Signature process not found")]
+    [SwaggerResponse((int)HttpStatusCode.BadRequest, "Process cannot be canceled")]
+    [SwaggerResponse((int)HttpStatusCode.InternalServerError, "Internal server error")]
+    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+    public async Task<IActionResult> CancelSignatureProcess(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Canceling signature process with ID {ProcessId}", id);
+
+        var result = await _signatureProcessService.CancelSignatureProcessAsync(id, cancellationToken);
+
+        if (!result)
+        {
+            return NotFound();
+        }
+
+        _logger.LogInformation("Signature process {ProcessId} canceled successfully", id);
+
+        return NoContent();
+    }
 }

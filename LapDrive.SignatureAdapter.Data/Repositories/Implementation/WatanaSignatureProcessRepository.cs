@@ -4,6 +4,7 @@ using LapDrive.SignatureAdapter.Models.DTOs.Response;
 using LapDrive.SignatureAdapter.Models.Entities;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using Microsoft.Extensions.Logging;
+using WatanaClient.API.Models.Requests;
 
 namespace LapDrive.SignatureAdapter.Data.Repositories.Implementation;
 
@@ -71,6 +72,24 @@ public class WatanaSignatureProcessRepository : ISignatureProcessRepository
         {
             _logger.LogError(ex, "Error getting signature process status for ID {ProcessId}", processId);
             throw new DataException($"Error getting signature process status: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> CancelSignatureProcessAsync(string processId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Canceling signature process {ProcessId} in Watana", processId);
+
+            var response = await _signatureProviderClient.CancelSignatureProcessAsync(processId, cancellationToken);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error canceling signature process {ProcessId} in Watana", processId);
+            throw new DataException($"Error canceling signature process in Watana: {ex.Message}", ex);
         }
     }
 }
