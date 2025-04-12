@@ -1,5 +1,7 @@
 using FluentValidation;
+using LapDrive.SignatureAdapter.Models.Constants;
 using LapDrive.SignatureAdapter.Models.DTOs.Request;
+using System.Linq;
 
 namespace LapDrive.SignatureAdapter.Business.Validators;
 
@@ -48,8 +50,8 @@ public class SignatureProcessRequestValidator : AbstractValidator<SignatureProce
         RuleFor(x => x.Document.Type)
             .NotEmpty()
             .WithMessage("Document type is required")
-            .Must(type => type == "file" || type == "folder")
-            .WithMessage("Document type must be 'file' or 'folder'");
+            .Must(type => type == CommonConstants.DocumentTypes.File || type == CommonConstants.DocumentTypes.Folder)
+            .WithMessage($"Document type must be '{CommonConstants.DocumentTypes.File}' or '{CommonConstants.DocumentTypes.Folder}'");
 
         RuleFor(x => x.Signers)
             .NotEmpty()
@@ -91,8 +93,15 @@ public class SignatureProcessRequestValidator : AbstractValidator<SignatureProce
                 signer.When(s => !string.IsNullOrEmpty(s.Signature.Position), () =>
                 {
                     signer.RuleFor(s => s.Signature.Position)
-                        .Must(position => new[] { "topLeft", "topCenter", "topRight", "bottomLeft", "bottomCenter", "bottomRight" }.Contains(position))
-                        .WithMessage("Position must be one of: topLeft, topCenter, topRight, bottomLeft, bottomCenter, bottomRight");
+                        .Must(position => new[] {
+                            SignaturePositions.TopLeft,
+                            SignaturePositions.TopCenter,
+                            SignaturePositions.TopRight,
+                            SignaturePositions.BottomLeft,
+                            SignaturePositions.BottomCenter,
+                            SignaturePositions.BottomRight
+                        }.Contains(position))
+                        .WithMessage($"Position must be one of: {SignaturePositions.TopLeft}, {SignaturePositions.TopCenter}, {SignaturePositions.TopRight}, {SignaturePositions.BottomLeft}, {SignaturePositions.BottomCenter}, {SignaturePositions.BottomRight}");
                 });
             });
 

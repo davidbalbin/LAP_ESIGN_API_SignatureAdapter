@@ -1,3 +1,4 @@
+using LapDrive.SignatureAdapter.Models.Constants;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using System.Net;
 using System.Text.Json;
@@ -43,7 +44,7 @@ public class ExceptionHandlingMiddleware
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = CommonConstants.ContentTypes.ApplicationJson;
         
         var response = new
         {

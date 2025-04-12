@@ -1,22 +1,33 @@
-﻿namespace LapDrive.SignatureAdapter.Models.Enums;
-
-/// <summary>
-/// Status of a signer in a signature process
-/// </summary>
-public enum SignerStatus
+﻿namespace LapDrive.SignatureAdapter.Models.Enums
 {
     /// <summary>
-    /// Signer has not taken any action yet
+    /// Standardized status for signature process signers
     /// </summary>
-    Pending = 0,
+    public enum SignerStatus
+    {
+        /// <summary>
+        /// Waiting for the signer's action
+        /// </summary>
+        Pending,
 
-    /// <summary>
-    /// Signer has signed the document
-    /// </summary>
-    Signed = 1,
+        /// <summary>
+        /// Document has been signed
+        /// </summary>
+        Signed,
 
-    /// <summary>
-    /// Signer has rejected the document
-    /// </summary>
-    Rejected = 2
+        /// <summary>
+        /// Document has been rejected by the signer
+        /// </summary>
+        Rejected,
+
+        /// <summary>
+        /// Process has been cancelled
+        /// </summary>
+        Cancelled,
+
+        /// <summary>
+        /// Signature in progress
+        /// </summary>
+        InProgress
+    }
 }

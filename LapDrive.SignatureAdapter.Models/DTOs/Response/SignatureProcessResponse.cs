@@ -1,27 +1,36 @@
 using System.Text.Json.Serialization;
+using LapDrive.SignatureAdapter.Models.Enums;
+using LapDrive.SignatureAdapter.Models.Extensions;
 
-namespace LapDrive.SignatureAdapter.Models.DTOs.Response;
-
-/// <summary>
-/// Response model for a signature process creation
-/// </summary>
-public class SignatureProcessResponse
+namespace LapDrive.SignatureAdapter.Models.DTOs.Response
 {
     /// <summary>
-    /// Gets or sets the process ID
+    /// Response model for signature process creation
     /// </summary>
-    [JsonPropertyName("processId")]
-    public string ProcessId { get; set; } = string.Empty;
+    public class SignatureProcessResponse
+    {
+        /// <summary>
+        /// Gets or sets the process ID
+        /// </summary>
+        [JsonPropertyName("processId")]
+        public string ProcessId { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the status of the signature process
-    /// </summary>
-    [JsonPropertyName("status")]
-    public string Status { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the status enum internally
+        /// </summary>
+        [JsonIgnore]
+        public ProcessStatus StatusEnum { get; set; }
 
-    /// <summary>
-    /// Gets or sets the message from the signature provider
-    /// </summary>
-    [JsonPropertyName("message")]
-    public string Message { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets the status text
+        /// </summary>
+        [JsonPropertyName("status")]
+        public string Status => StatusEnum.ToDisplayString();
+
+        /// <summary>
+        /// Gets or sets the response message
+        /// </summary>
+        [JsonPropertyName("message")]
+        public string Message { get; set; } = string.Empty;
+    }
 }

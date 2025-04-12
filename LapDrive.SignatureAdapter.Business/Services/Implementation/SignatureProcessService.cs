@@ -1,8 +1,11 @@
 using FluentValidation;
+using LapDrive.SignatureAdapter.Business.Extensions;
 using LapDrive.SignatureAdapter.Business.Services.Interfaces;
+using LapDrive.SignatureAdapter.Models.Constants;
 using LapDrive.SignatureAdapter.Models.DTOs.Request;
 using LapDrive.SignatureAdapter.Models.DTOs.Response;
 using LapDrive.SignatureAdapter.Models.Entities;
+using LapDrive.SignatureAdapter.Models.Enums;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -59,7 +62,7 @@ public class SignatureProcessService : ISignatureProcessService
                 request.Document.WebUrl,
                 request.Document.LibraryName,
                 request.Document.Id,
-                request.Document.Type == "folder",
+                request.Document.Type == CommonConstants.DocumentTypes.Folder,
                 cancellationToken);
 
             if (documentContent == null)
@@ -80,7 +83,7 @@ public class SignatureProcessService : ISignatureProcessService
                     Name = request.Document.Name,
                     LibraryName = request.Document.LibraryName,
                     WebUrl = request.Document.WebUrl,
-                    Type = request.Document.Type == "folder" ? Models.Enums.DocumentType.Folder : Models.Enums.DocumentType.File,
+                    Type = request.Document.Type == CommonConstants.DocumentTypes.Folder ? DocumentType.Folder : DocumentType.File,
                     Content = documentContent
                 },
                 Signers = request.Signers.Select(s => new Signer
@@ -110,7 +113,7 @@ public class SignatureProcessService : ISignatureProcessService
                 request.Document.WebUrl,
                 request.Document.LibraryName,
                 request.Document.Id,
-                "InProgress",
+                CommonConstants.ProcessStatuses.InProgress,
                 processId,
                 cancellationToken);
 
@@ -127,12 +130,14 @@ public class SignatureProcessService : ISignatureProcessService
                cancellationToken);
 
             // Return response
-            return new SignatureProcessResponse
+            var response = new SignatureProcessResponse
             {
                 ProcessId = processId,
-                Status = "InProgress",
-                Message = "Signature process created successfully"
+                StatusEnum = ProcessStatus.InProgress,
+                Message = "Proceso de firma creado exitosamente"
             };
+
+            return response;
         }
         catch (Exception ex) when (ex is not Models.Exceptions.ValidationException && ex is not BusinessException)
         {
@@ -168,17 +173,17 @@ public class SignatureProcessService : ISignatureProcessService
                 return new SignatureProcessDetailResponse
                 {
                     ProcessId = processId,
-                    Status = signatureProcessStatus.Estado,
+                    StatusEnum = signatureProcessStatus?.Estado?.ToProcessStatus() ?? ProcessStatus.Pending,
                     CreatedAt = DateTime.UtcNow, // No way to know exact creation time without tracking
-                    Subject = signatureProcessStatus.Titulo,
+                    Subject = signatureProcessStatus?.Titulo ?? string.Empty,
                     Message = string.Empty,
-                    Signers = signatureProcessStatus.Firmantes.Select(f => new SignerDetail
+                    Signers = signatureProcessStatus?.Firmantes?.Select(f => new SignerDetail
                     {
                         DisplayName = f.NombreCompleto,
                         Email = f.Email,
-                        Status = f.Estado,
+                        StatusEnum = f.Estado.ToSignerStatus(),
                         SignatureDate = f.FechaFirma
-                    }).ToList()
+                    })?.ToList() ?? new List<SignerDetail>()
                 };
             }
 
@@ -186,7 +191,7 @@ public class SignatureProcessService : ISignatureProcessService
             return new SignatureProcessDetailResponse
             {
                 ProcessId = processId,
-                Status = signatureProcessStatus.Estado,
+                StatusEnum = signatureProcessStatus?.Estado?.ToProcessStatus() ?? ProcessStatus.Pending,
                 CreatedAt = trackingInfo.CreatedAt,
                 Subject = trackingInfo.Subject,
                 Message = trackingInfo.Message,
@@ -196,15 +201,15 @@ public class SignatureProcessService : ISignatureProcessService
                     Name = Path.GetFileName(trackingInfo.DocumentId),
                     LibraryName = trackingInfo.LibraryName,
                     WebUrl = trackingInfo.WebUrl,
-                    Type = "file" // Default to file
+                    Type = CommonConstants.DocumentTypes.File // Default to file
                 },
-                Signers = signatureProcessStatus.Firmantes.Select(f => new SignerDetail
+                Signers = signatureProcessStatus?.Firmantes?.Select(f => new SignerDetail
                 {
                     DisplayName = f.NombreCompleto,
                     Email = f.Email,
-                    Status = f.Estado,
+                    StatusEnum = f.Estado.ToSignerStatus(),
                     SignatureDate = f.FechaFirma
-                }).ToList(),
+                })?.ToList() ?? new List<SignerDetail>(),
                 Recipients = trackingInfo.Recipients.Select(r => new RecipientDetail
                 {
                     DisplayName = r,
@@ -239,9 +244,10 @@ public class SignatureProcessService : ISignatureProcessService
             }
 
             // Check if process can be canceled (only if it's in progress)
-            if (processStatus.Estado != "en-proceso" && processStatus.Estado != "en-espera")
+            var estado = processStatus?.Estado ?? string.Empty;
+            if (estado != CommonConstants.WatanaStatuses.EnProceso && estado != CommonConstants.WatanaStatuses.EnEspera)
             {
-                throw new BusinessException($"Cannot cancel process with status '{processStatus.Estado}'. Only in-progress processes can be canceled.");
+                throw new BusinessException($"Cannot cancel process with status '{estado}'. Only in-progress processes can be canceled.");
             }
 
             // Cancel the process in the signature provider
@@ -263,14 +269,14 @@ public class SignatureProcessService : ISignatureProcessService
                     trackingInfo.WebUrl,
                     trackingInfo.LibraryName,
                     trackingInfo.DocumentId,
-                    "Canceled",
+                    CommonConstants.ProcessStatuses.Cancelled,
                     processId,
                     cancellationToken);
 
                 // Update tracking record
                 await _trackingRepository.UpdateTrackingStatusAsync(
                     processId,
-                    "Canceled",
+                    CommonConstants.ProcessStatuses.Cancelled,
                     cancellationToken);
             }
 

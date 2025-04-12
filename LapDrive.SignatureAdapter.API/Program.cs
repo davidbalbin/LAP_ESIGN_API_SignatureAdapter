@@ -1,5 +1,6 @@
 using LapDrive.SignatureAdapter.API.Middleware;
 using LapDrive.SignatureAdapter.API.Extensions;
+using LapDrive.SignatureAdapter.API.Configuration;
 using LapDrive.SignatureAdapter.Business.Extensions;
 using LapDrive.SignatureAdapter.Data.Extensions;
 using Microsoft.OpenApi.Models;
@@ -35,15 +36,18 @@ builder.Services.AddVersionedApiExplorer(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    var apiSettings = builder.Configuration.GetSection("Api").Get<ApiSettings>()
+        ?? new ApiSettings();
+            
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "LapDrive Signature Adapter API",
-        Version = "v1",
-        Description = "API for digital signature processes",
+        Title = apiSettings.Title,
+        Version = apiSettings.Version,
+        Description = apiSettings.Description,
         Contact = new OpenApiContact
         {
-            Name = "Development Team",
-            Email = "dev@example.com"
+            Name = apiSettings.Contact.Name,
+            Email = apiSettings.Contact.Email
         }
     });
 
