@@ -62,7 +62,7 @@ public class SignatureProcessService : ISignatureProcessService
                 request.Document.WebUrl,
                 request.Document.LibraryName,
                 request.Document.Id,
-                request.Document.Type == CommonConstants.DocumentTypes.Folder,
+                request.Document.Type == DocumentTypes.Folder,
                 cancellationToken);
 
             if (documentContent == null)
@@ -83,7 +83,7 @@ public class SignatureProcessService : ISignatureProcessService
                     Name = request.Document.Name,
                     LibraryName = request.Document.LibraryName,
                     WebUrl = request.Document.WebUrl,
-                    Type = request.Document.Type == CommonConstants.DocumentTypes.Folder ? DocumentType.Folder : DocumentType.File,
+                    Type = request.Document.Type == DocumentTypes.Folder ? DocumentType.Folder : DocumentType.File,
                     Content = documentContent
                 },
                 Signers = request.Signers.Select(s => new Signer
@@ -113,7 +113,7 @@ public class SignatureProcessService : ISignatureProcessService
                 request.Document.WebUrl,
                 request.Document.LibraryName,
                 request.Document.Id,
-                CommonConstants.ProcessStatuses.InProgress,
+                ProcessStatuses.InProgress,
                 processId,
                 cancellationToken);
 
@@ -201,7 +201,7 @@ public class SignatureProcessService : ISignatureProcessService
                     Name = Path.GetFileName(trackingInfo.DocumentId),
                     LibraryName = trackingInfo.LibraryName,
                     WebUrl = trackingInfo.WebUrl,
-                    Type = CommonConstants.DocumentTypes.File // Default to file
+                    Type = DocumentTypes.File // Default to file
                 },
                 Signers = signatureProcessStatus?.Firmantes?.Select(f => new SignerDetail
                 {
@@ -245,7 +245,7 @@ public class SignatureProcessService : ISignatureProcessService
 
             // Check if process can be canceled (only if it's in progress)
             var estado = processStatus?.Estado ?? string.Empty;
-            if (estado != CommonConstants.WatanaStatuses.EnProceso && estado != CommonConstants.WatanaStatuses.EnEspera)
+            if (estado != WatanaStatuses.EnProceso && estado != WatanaStatuses.EnEspera)
             {
                 throw new BusinessException($"Cannot cancel process with status '{estado}'. Only in-progress processes can be canceled.");
             }
@@ -269,14 +269,14 @@ public class SignatureProcessService : ISignatureProcessService
                     trackingInfo.WebUrl,
                     trackingInfo.LibraryName,
                     trackingInfo.DocumentId,
-                    CommonConstants.ProcessStatuses.Cancelled,
+                    ProcessStatuses.Cancelled,
                     processId,
                     cancellationToken);
 
                 // Update tracking record
                 await _trackingRepository.UpdateTrackingStatusAsync(
                     processId,
-                    CommonConstants.ProcessStatuses.Cancelled,
+                    ProcessStatuses.Cancelled,
                     cancellationToken);
             }
 

@@ -50,8 +50,8 @@ public class SignatureProcessRequestValidator : AbstractValidator<SignatureProce
         RuleFor(x => x.Document.Type)
             .NotEmpty()
             .WithMessage("Document type is required")
-            .Must(type => type == CommonConstants.DocumentTypes.File || type == CommonConstants.DocumentTypes.Folder)
-            .WithMessage($"Document type must be '{CommonConstants.DocumentTypes.File}' or '{CommonConstants.DocumentTypes.Folder}'");
+            .Must(type => type == DocumentTypes.File || type == DocumentTypes.Folder)
+            .WithMessage($"Document type must be '{DocumentTypes.File}' or '{DocumentTypes.Folder}'");
 
         RuleFor(x => x.Signers)
             .NotEmpty()

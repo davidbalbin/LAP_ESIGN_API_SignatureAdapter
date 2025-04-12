@@ -1,77 +1,66 @@
-using LapDrive.SignatureAdapter.Models.Constants;
-using LapDrive.SignatureAdapter.Models.Exceptions;
 using System.Net;
 using System.Text.Json;
+using LapDrive.SignatureAdapter.Models.Constants;
+using LapDrive.SignatureAdapter.Models.Exceptions;
 
-namespace LapDrive.SignatureAdapter.API.Middleware;
-
-/// <summary>
-/// Middleware to handle exceptions globally across the application
-/// </summary>
-public class ExceptionHandlingMiddleware
+namespace LapDrive.SignatureAdapter.API.Middleware
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="ExceptionHandlingMiddleware"/> class.
+    /// Middleware for handling exceptions globally
     /// </summary>
-    /// <param name="next">The next middleware in the pipeline</param>
-    /// <param name="logger">The logger</param>
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public class ExceptionHandlingMiddleware
     {
-        _next = next;
-        _logger = logger;
-    }
+        private readonly RequestDelegate _next;
 
-    /// <summary>
-    /// Invokes the middleware
-    /// </summary>
-    /// <param name="context">The HttpContext for the current request</param>
-    /// <returns>A task that represents the completion of request processing</returns>
-    public async Task InvokeAsync(HttpContext context)
-    {
-        try
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExceptionHandlingMiddleware"/> class.
+        /// </summary>
+        /// <param name="next">The next middleware in the pipeline</param>
+        public ExceptionHandlingMiddleware(RequestDelegate next)
         {
-            await _next(context);
+            _next = next;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unhandled exception occurred during request processing");
-            await HandleExceptionAsync(context, ex);
-        }
-    }
 
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
-    {
-        context.Response.ContentType = CommonConstants.ContentTypes.ApplicationJson;
-        
-        var response = new
+        /// <summary>
+        /// Invokes the middleware
+        /// </summary>
+        /// <param name="context">The HTTP context</param>
+        /// <returns>A task representing the asynchronous operation</returns>
+        public async Task InvokeAsync(HttpContext context)
         {
-            error = new
+            try
             {
-                message = exception.Message,
-                detail = exception is BusinessException || exception is ValidationException || exception is DataException 
-                    ? exception.Message 
-                    : "An unexpected error occurred"
+                await _next(context);
             }
-        };
+            catch (Exception ex)
+            {
+                await HandleExceptionAsync(context, ex);
+            }
+        }
 
-        context.Response.StatusCode = exception switch
+        private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            ValidationException => (int)HttpStatusCode.BadRequest,
-            BusinessException => (int)HttpStatusCode.BadRequest,
-            DataException => (int)HttpStatusCode.InternalServerError,
-            _ => (int)HttpStatusCode.InternalServerError
-        };
+            context.Response.ContentType = ContentTypes.ApplicationJson;
 
-        var jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
+            var response = new
+            {
+                error = new
+                {
+                    message = exception.Message,
+                    type = exception.GetType().Name
+                }
+            };
 
-        var jsonResponse = JsonSerializer.Serialize(response, jsonOptions);
-        await context.Response.WriteAsync(jsonResponse);
+            context.Response.StatusCode = exception switch
+            {
+                BusinessException => (int)HttpStatusCode.BadRequest,
+                ValidationException => (int)HttpStatusCode.BadRequest,
+                DataException => (int)HttpStatusCode.NotFound,
+                _ => (int)HttpStatusCode.InternalServerError
+            };
+
+            var result = JsonSerializer.Serialize(response);
+            await context.Response.WriteAsync(result);
+        }
     }
 }

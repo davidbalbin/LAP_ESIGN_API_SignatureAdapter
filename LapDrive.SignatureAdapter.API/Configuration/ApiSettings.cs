@@ -7,10 +7,4 @@ namespace LapDrive.SignatureAdapter.API.Configuration
         public string Description { get; set; } = "API for digital signature processes";
         public ContactInfo Contact { get; set; } = new();
     }
-
-    public class ContactInfo
-    {
-        public string Name { get; set; } = "Development Team";
-        public string Email { get; set; } = string.Empty;
-    }
 }
