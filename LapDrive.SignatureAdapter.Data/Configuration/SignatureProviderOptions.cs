@@ -24,4 +24,14 @@ public class SignatureProviderOptions
     /// Gets or sets the maximum number of retries for failed requests
     /// </summary>
     public int MaxRetries { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the signature templates configuration
+    /// </summary>
+    public SignatureProviderTemplates Templates { get; set; } = new SignatureProviderTemplates();
+
+    /// <summary>
+    /// Gets or sets the signature process status configuration
+    /// </summary>
+    public SignatureProviderStatus Status { get; set; } = new SignatureProviderStatus();
 }

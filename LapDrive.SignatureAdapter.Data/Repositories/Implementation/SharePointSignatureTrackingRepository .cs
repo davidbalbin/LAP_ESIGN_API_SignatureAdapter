@@ -1,8 +1,10 @@
 ﻿using LapDrive.SignatureAdapter.Data.Clients.Interfaces;
+using LapDrive.SignatureAdapter.Data.Configuration;
 using LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
 using LapDrive.SignatureAdapter.Models.Entities;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace LapDrive.SignatureAdapter.Data.Repositories.Implementation;
@@ -14,19 +16,22 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
 {
     private readonly ISharePointClient _sharePointClient;
     private readonly ILogger<SharePointSignatureTrackingRepository> _logger;
-    private const string TrackingListName = "EnviosFirmas";
+    private readonly SharePointTrackingOptions _trackingOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SharePointSignatureTrackingRepository"/> class.
     /// </summary>
     /// <param name="sharePointClient">The SharePoint client</param>
     /// <param name="logger">The logger</param>
+    /// <param name="trackingOptions">The tracking options</param>
     public SharePointSignatureTrackingRepository(
         ISharePointClient sharePointClient,
-        ILogger<SharePointSignatureTrackingRepository> logger)
+        ILogger<SharePointSignatureTrackingRepository> logger,
+        IOptions<SharePointTrackingOptions> trackingOptions)
     {
         _sharePointClient = sharePointClient ?? throw new ArgumentNullException(nameof(sharePointClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _trackingOptions = trackingOptions?.Value ?? throw new ArgumentNullException(nameof(trackingOptions));
     }
 
     /// <inheritdoc/>
@@ -46,7 +51,7 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
         {
             _logger.LogInformation("Registering tracking information for signature process {ProcessId}", processId);
 
-            var trackingSiteUrl = "https://lapperu.sharepoint.com/sites/dkmt365/firmas";
+            var trackingSiteUrl = _trackingOptions.SiteUrl;
 
             var metadata = new Dictionary<string, object>
             {
@@ -67,7 +72,7 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
             // Create a new item in the tracking list
             await _sharePointClient.CreateListItemAsync(
                 trackingSiteUrl,
-                TrackingListName,
+                _trackingOptions.ListName,
                 metadata,
                 cancellationToken);
 
@@ -87,12 +92,12 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
         {
             _logger.LogInformation("Getting tracking information for signature process {ProcessId}", processId);
 
-            var trackingSiteUrl = "https://lapperu.sharepoint.com/sites/dkmt365/firmas";
+            var trackingSiteUrl = _trackingOptions.SiteUrl;
 
             // Get tracking item from the list by its CircuitID field
             var trackingItem = await _sharePointClient.GetListItemByFieldValueAsync(
                 trackingSiteUrl,
-                TrackingListName,
+                _trackingOptions.ListName,
                 "CircuitID",
                 processId,
                 cancellationToken);
@@ -131,12 +136,12 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
         {
             _logger.LogInformation("Updating tracking status for process {ProcessId} to {Status}", processId, status);
 
-            var trackingSiteUrl = "https://lapperu.sharepoint.com/sites/dkmt365/firmas";
+            var trackingSiteUrl = _trackingOptions.SiteUrl;
 
             // Get the tracking item from SharePoint
             var trackingItem = await _sharePointClient.GetListItemByFieldValueAsync(
                 trackingSiteUrl,
-                TrackingListName,
+                _trackingOptions.ListName,
                 "CircuitID",
                 processId,
                 cancellationToken);
@@ -155,7 +160,7 @@ public class SharePointSignatureTrackingRepository : ISignatureTrackingRepositor
 
             await _sharePointClient.UpdateListItemAsync(
                 trackingSiteUrl,
-                TrackingListName,
+                _trackingOptions.ListName,
                 trackingItem.Id,
                 metadata,
                 cancellationToken);

@@ -26,6 +26,9 @@ public static class ServiceCollectionExtensions
         // Register configuration options
         services.Configure<SharePointOptions>(configuration.GetSection("SharePoint"));
         services.Configure<SignatureProviderOptions>(configuration.GetSection("SignatureProvider"));
+        services.Configure<SharePointTrackingOptions>(
+            options => configuration.GetSection("SharePoint:Tracking").Bind(options)
+        );
         
         // Register factories
         services.AddSingleton<SharePointContextFactory>();

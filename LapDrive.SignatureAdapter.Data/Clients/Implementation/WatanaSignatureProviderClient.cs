@@ -130,8 +130,8 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
                     Largo = 160,
                     Alto = 40,
                     Pagina = signer.SignatureInfo.PageNumber,
-                    Texto = "Firmado por: <FIRMANTE>\r\n<ORGANIZACION>\r\n<TITULO>\r\n<CORREO>\r\nMotivo: Firma Digital\r\nFecha: <FECHA>",
-                    Motivo = "Firma Digital",
+                    Texto = _options.Templates.SignatureText,
+                    Motivo = _options.Templates.SignatureReason,
                     ImageZipBase64 = GetDefaultLogoBase64()
                 });
             }
@@ -233,13 +233,13 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         }
 
         // If all solicitudes are finalized, the process is finalized
-        if (solicitudes.All(s => s.Estado == "firmado"))
+        if (solicitudes.All(s => s.Estado == _options.Status.Signed))
         {
             return "firmado";
         }
 
         // If any solicitude is rejected, the process is rejected
-        if (solicitudes.Any(s => s.Estado == "rechazado-por-firmante"))
+        if (solicitudes.Any(s => s.Estado == _options.Status.Rejected))
         {
             return "rechazado-por-firmante";
         }
@@ -276,7 +276,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
             Largo = 160,
             Alto = 40,
             Pagina = signatureInfo.PageNumber,
-            Texto = "Firmado por: <FIRMANTE>\r\n<ORGANIZACION>\r\n<TITULO>\r\n<CORREO>\r\nMotivo: Firma Digital\r\nFecha: <FECHA>",
+            Texto = _options.Templates.SignatureText,
             ImageZipBase64 = GetDefaultLogoBase64()
         };
 
