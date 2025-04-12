@@ -173,16 +173,16 @@ public class SignatureProcessService : ISignatureProcessService
                 return new SignatureProcessDetailResponse
                 {
                     ProcessId = processId,
-                    StatusEnum = signatureProcessStatus?.Estado?.ToProcessStatus() ?? ProcessStatus.Pending,
+                    StatusEnum = signatureProcessStatus?.Status?.ToProcessStatus() ?? ProcessStatus.Pending,
                     CreatedAt = DateTime.UtcNow, // No way to know exact creation time without tracking
-                    Subject = signatureProcessStatus?.Titulo ?? string.Empty,
+                    Subject = signatureProcessStatus?.Title ?? string.Empty,
                     Message = string.Empty,
-                    Signers = signatureProcessStatus?.Firmantes?.Select(f => new SignerDetail
+                    Signers = signatureProcessStatus?.Signers?.Select(f => new SignerDetail
                     {
-                        DisplayName = f.NombreCompleto,
+                        DisplayName = f.FullName,
                         Email = f.Email,
-                        StatusEnum = f.Estado.ToSignerStatus(),
-                        SignatureDate = f.FechaFirma
+                        StatusEnum = f.Status.ToSignerStatus(),
+                        SignatureDate = f.SignatureDate
                     })?.ToList() ?? new List<SignerDetail>()
                 };
             }
@@ -191,7 +191,7 @@ public class SignatureProcessService : ISignatureProcessService
             return new SignatureProcessDetailResponse
             {
                 ProcessId = processId,
-                StatusEnum = signatureProcessStatus?.Estado?.ToProcessStatus() ?? ProcessStatus.Pending,
+                StatusEnum = signatureProcessStatus?.Status?.ToProcessStatus() ?? ProcessStatus.Pending,
                 CreatedAt = trackingInfo.CreatedAt,
                 Subject = trackingInfo.Subject,
                 Message = trackingInfo.Message,
@@ -203,12 +203,12 @@ public class SignatureProcessService : ISignatureProcessService
                     WebUrl = trackingInfo.WebUrl,
                     Type = DocumentTypes.File // Default to file
                 },
-                Signers = signatureProcessStatus?.Firmantes?.Select(f => new SignerDetail
+                Signers = signatureProcessStatus?.Signers?.Select(f => new SignerDetail
                 {
-                    DisplayName = f.NombreCompleto,
+                    DisplayName = f.FullName,
                     Email = f.Email,
-                    StatusEnum = f.Estado.ToSignerStatus(),
-                    SignatureDate = f.FechaFirma
+                    StatusEnum = f.Status.ToSignerStatus(),
+                    SignatureDate = f.SignatureDate
                 })?.ToList() ?? new List<SignerDetail>(),
                 Recipients = trackingInfo.Recipients.Select(r => new RecipientDetail
                 {
@@ -244,10 +244,10 @@ public class SignatureProcessService : ISignatureProcessService
             }
 
             // Check if process can be canceled (only if it's in progress)
-            var estado = processStatus?.Estado ?? string.Empty;
-            if (estado != WatanaStatuses.EnProceso && estado != WatanaStatuses.EnEspera)
+            var status = processStatus?.Status ?? string.Empty;
+            if (status != WatanaStatuses.EnProceso && status != WatanaStatuses.EnEspera)
             {
-                throw new BusinessException($"Cannot cancel process with status '{estado}'. Only in-progress processes can be canceled.");
+                throw new BusinessException($"Cannot cancel process with status '{status}'. Only in-progress processes can be canceled.");
             }
 
             // Cancel the process in the signature provider

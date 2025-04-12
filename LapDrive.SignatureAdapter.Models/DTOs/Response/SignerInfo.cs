@@ -5,30 +5,30 @@ namespace LapDrive.SignatureAdapter.Models.DTOs.Response
     /// <summary>
     /// Signer information from Watana
     /// </summary>
-    public class FirmanteInfo
+    public class SignerInfo
     {
         /// <summary>
         /// Gets or sets the email
         /// </summary>
-        [JsonPropertyName("email")]
+        [JsonPropertyName("firmante")]
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the display name
         /// </summary>
         [JsonPropertyName("nombreCompleto")]
-        public string NombreCompleto { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the state
         /// </summary>
         [JsonPropertyName("estado")]
-        public string Estado { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the signature date
         /// </summary>
         [JsonPropertyName("fechaFirma")]
-        public DateTime? FechaFirma { get; set; }
+        public DateTime? SignatureDate { get; set; }
     }
 }

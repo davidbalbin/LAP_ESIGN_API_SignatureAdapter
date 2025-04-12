@@ -182,16 +182,15 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
             // Map the response to SignatureProcessStatusResponse
             var statusResponse = new SignatureProcessStatusResponse
             {
-                Estado = GetEstadoFromSolicitudes(response.Solicitudes),
-                Titulo = response.Solicitudes.FirstOrDefault()?.Solicitante ?? string.Empty,
-                EnlaceParaFirmar = string.Empty, // Este dato puede no estar disponible en la respuesta
-                Firmantes = response.Solicitudes
-                    .Select(s => new FirmanteInfo
+                Status = GetStatusFromSolicitudes(response.Solicitudes),
+                Title = response.Solicitudes.FirstOrDefault()?.Solicitante ?? string.Empty,
+                Signers = response.Solicitudes
+                    .Select(s => new SignerInfo
                     {
                         Email = s.Firmante,
-                        NombreCompleto = s.Firmante, // No hay nombre completo en la respuesta
-                        Estado = s.Estado,
-                        FechaFirma = null // No hay fecha en la respuesta
+                        FullName = s.Firmante, // No hay nombre completo en la respuesta
+                        Status = s.Estado,
+                        SignatureDate = null // No hay fecha en la respuesta
                     })
                     .ToList()
             };
@@ -225,7 +224,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         }
     }
 
-    private string GetEstadoFromSolicitudes(List<SolicitudDetail> solicitudes)
+    private string GetStatusFromSolicitudes(List<SolicitudDetail> solicitudes)
     {
         if (solicitudes == null || !solicitudes.Any())
         {
@@ -235,17 +234,17 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         // If all solicitudes are finalized, the process is finalized
         if (solicitudes.All(s => s.Estado == _options.Status.Signed))
         {
-            return "firmado";
+            return "signed";
         }
 
         // If any solicitude is rejected, the process is rejected
         if (solicitudes.Any(s => s.Estado == _options.Status.Rejected))
         {
-            return "rechazado-por-firmante";
+            return "rejected";
         }
 
         // Otherwise, the process is in progress
-        return "en-proceso";
+        return "in-progress";
     }
 
     private string GetDefaultLogoBase64()
