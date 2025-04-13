@@ -1,11 +1,13 @@
 using FluentValidation;
 using LapDrive.SignatureAdapter.Business.Extensions;
 using LapDrive.SignatureAdapter.Business.Services.Interfaces;
+using LapDrive.SignatureAdapter.Data.Mappers;
 using LapDrive.SignatureAdapter.Models.Constants;
 using LapDrive.SignatureAdapter.Models.DTOs.Request;
 using LapDrive.SignatureAdapter.Models.DTOs.Response;
 using LapDrive.SignatureAdapter.Models.Entities;
 using LapDrive.SignatureAdapter.Models.Enums;
+using LapDrive.SignatureAdapter.Models.Extensions;
 using LapDrive.SignatureAdapter.Models.Exceptions;
 using LapDrive.SignatureAdapter.Data.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -113,7 +115,7 @@ public class SignatureProcessService : ISignatureProcessService
                 request.Document.WebUrl,
                 request.Document.LibraryName,
                 request.Document.Id,
-                ProcessStatuses.InProgress,
+                SignatureProcessStatus.WaitingForSignatures.ToSharePointStatus(),
                 processId,
                 cancellationToken);
 
@@ -133,7 +135,7 @@ public class SignatureProcessService : ISignatureProcessService
             var response = new SignatureProcessResponse
             {
                 ProcessId = processId,
-                StatusEnum = ProcessStatus.InProgress,
+                StatusEnum = SignatureProcessStatus.WaitingForSignatures,
                 Message = "Proceso de firma creado exitosamente"
             };
 
@@ -173,7 +175,9 @@ public class SignatureProcessService : ISignatureProcessService
                 return new SignatureProcessDetailResponse
                 {
                     ProcessId = processId,
-                    StatusEnum = signatureProcessStatus?.Status?.ToProcessStatus() ?? ProcessStatus.Pending,
+                    StatusEnum = signatureProcessStatus?.Status != null
+                        ? WatanaStatusMapper.ToSignatureProcessStatus(signatureProcessStatus.Status)
+                        : SignatureProcessStatus.Pending,
                     CreatedAt = DateTime.UtcNow, // No way to know exact creation time without tracking
                     Subject = signatureProcessStatus?.Title ?? string.Empty,
                     Message = string.Empty,
@@ -191,7 +195,9 @@ public class SignatureProcessService : ISignatureProcessService
             return new SignatureProcessDetailResponse
             {
                 ProcessId = processId,
-                StatusEnum = signatureProcessStatus?.Status?.ToProcessStatus() ?? ProcessStatus.Pending,
+                StatusEnum = signatureProcessStatus?.Status != null
+                    ? WatanaStatusMapper.ToSignatureProcessStatus(signatureProcessStatus.Status)
+                    : SignatureProcessStatus.Pending,
                 CreatedAt = trackingInfo.CreatedAt,
                 Subject = trackingInfo.Subject,
                 Message = trackingInfo.Message,
@@ -269,14 +275,14 @@ public class SignatureProcessService : ISignatureProcessService
                     trackingInfo.WebUrl,
                     trackingInfo.LibraryName,
                     trackingInfo.DocumentId,
-                    ProcessStatuses.Cancelled,
+                    SignatureProcessStatus.Canceled.ToSharePointStatus(),
                     processId,
                     cancellationToken);
 
                 // Update tracking record
                 await _trackingRepository.UpdateTrackingStatusAsync(
                     processId,
-                    ProcessStatuses.Cancelled,
+                    SignatureProcessStatus.Canceled.ToSharePointStatus(),
                     cancellationToken);
             }
 

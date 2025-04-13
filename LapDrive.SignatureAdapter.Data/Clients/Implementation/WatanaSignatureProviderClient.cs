@@ -1,17 +1,20 @@
 using LapDrive.SignatureAdapter.Data.Clients.Interfaces;
 using LapDrive.SignatureAdapter.Data.Configuration;
+using LapDrive.SignatureAdapter.Data.Mappers;
+using LapDrive.SignatureAdapter.Models.Constants;
 using LapDrive.SignatureAdapter.Models.Entities;
+using LapDrive.SignatureAdapter.Models.Enums;
 using LapDrive.SignatureAdapter.Models.Exceptions;
+using LapDrive.SignatureAdapter.Models.DTOs.Response;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WatanaClient.API;
 using WatanaClient.API.Models.Common;
 using WatanaClient.API.Models.Requests;
+using WatanaClient.API.Models.Responses;
 using System.Text;
 using WatanaClient.API.Services;
 using System.IO.Compression;
-using LapDrive.SignatureAdapter.Models.DTOs.Response;
-using WatanaClient.API.Models.Responses;
 
 namespace LapDrive.SignatureAdapter.Data.Clients.Implementation;
 
@@ -180,9 +183,14 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
             }
 
             // Map the response to SignatureProcessStatusResponse
+            // Map status using WatanaStatusMapper
+            var watanaStatus = GetStatusFromSolicitudes(response.Solicitudes);
+            var signatureStatus = WatanaStatusMapper.ToSignatureProcessStatus(watanaStatus);
+
             var statusResponse = new SignatureProcessStatusResponse
             {
-                Status = GetStatusFromSolicitudes(response.Solicitudes),
+                Status = watanaStatus,
+                StatusEnum = signatureStatus,
                 Title = response.Solicitudes.FirstOrDefault()?.Solicitante ?? string.Empty,
                 Signers = response.Solicitudes
                     .Select(s => new SignerInfo
@@ -228,23 +236,23 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
     {
         if (solicitudes == null || !solicitudes.Any())
         {
-            return "not_found";
+            return WatanaStatuses.EnEspera;
         }
 
         // If all solicitudes are finalized, the process is finalized
         if (solicitudes.All(s => s.Estado == _options.Status.Signed))
         {
-            return "signed";
+            return WatanaStatuses.Firmado;
         }
 
         // If any solicitude is rejected, the process is rejected
         if (solicitudes.Any(s => s.Estado == _options.Status.Rejected))
         {
-            return "rejected";
+            return WatanaStatuses.Rechazado;
         }
 
         // Otherwise, the process is in progress
-        return "in-progress";
+        return WatanaStatuses.EnProceso;
     }
 
     private string GetDefaultLogoBase64()

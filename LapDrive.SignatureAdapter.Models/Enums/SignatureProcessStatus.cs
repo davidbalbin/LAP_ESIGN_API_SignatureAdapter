@@ -31,7 +31,12 @@ public enum SignatureProcessStatus
     Expired = 4,
 
     /// <summary>
+    /// Process is waiting for signatures
+    /// </summary>
+    WaitingForSignatures = 5,
+
+    /// <summary>
     /// Process is canceled
     /// </summary>
-    Canceled = 5
+    Canceled = 6
 }

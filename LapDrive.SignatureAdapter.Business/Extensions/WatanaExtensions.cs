@@ -23,17 +23,17 @@ namespace LapDrive.SignatureAdapter.Business.Extensions
         };
 
         /// <summary>
-        /// Maps Watana process status to application ProcessStatus
+        /// Maps Watana process status to application SignatureProcessStatus
         /// </summary>
         /// <param name="watanaStatus">The Watana status string</param>
-        /// <returns>The mapped ProcessStatus</returns>
-        public static ProcessStatus ToProcessStatus(this string watanaStatus) => watanaStatus switch
+        /// <returns>The mapped SignatureProcessStatus</returns>
+        public static SignatureProcessStatus ToProcessStatus(this string watanaStatus) => watanaStatus switch
         {
-            var state when state == WatanaStatuses.Firmado => ProcessStatus.Completed,
-            var state when state == WatanaStatuses.Rechazado => ProcessStatus.Rejected,
-            var state when state == WatanaStatuses.EnProceso => ProcessStatus.InProgress,
-            var state when state == WatanaStatuses.EnEspera => ProcessStatus.WaitingForSignatures,
-            _ => ProcessStatus.Pending
+            var state when state == WatanaStatuses.Firmado => SignatureProcessStatus.Completed,
+            var state when state == WatanaStatuses.Rechazado => SignatureProcessStatus.Rejected,
+            var state when state == WatanaStatuses.EnProceso => SignatureProcessStatus.WaitingForSignatures,
+            var state when state == WatanaStatuses.EnEspera => SignatureProcessStatus.Pending,
+            _ => SignatureProcessStatus.Pending
         };
     }
 }

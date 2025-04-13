@@ -19,7 +19,7 @@ namespace LapDrive.SignatureAdapter.Models.DTOs.Response
         /// Gets or sets the status enum
         /// </summary>
         [JsonIgnore]
-        public ProcessStatus StatusEnum { get; set; }
+        public SignatureProcessStatus StatusEnum { get; set; }
 
         /// <summary>
         /// Gets the status text

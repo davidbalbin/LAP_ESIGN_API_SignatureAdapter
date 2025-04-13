@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Constants\CommonConstants.cs" />
+    <Compile Remove="Constants\ProcessStatuses.cs" />
+    <Compile Remove="Enums\ProcessStatus.cs" />
+    <Compile Remove="Extensions\ProcessStatusExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Text.Json" Version="9.0.3" />
   </ItemGroup>
 
