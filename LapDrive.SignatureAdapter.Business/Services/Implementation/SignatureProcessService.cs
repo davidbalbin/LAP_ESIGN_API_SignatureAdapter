@@ -3,6 +3,7 @@ using LapDrive.SignatureAdapter.Business.Extensions;
 using LapDrive.SignatureAdapter.Business.Services.Interfaces;
 using LapDrive.SignatureAdapter.Data.Mappers;
 using LapDrive.SignatureAdapter.Models.Constants;
+using LapDrive.SignatureAdapter.Models.DTOs.Common;
 using LapDrive.SignatureAdapter.Models.DTOs.Request;
 using LapDrive.SignatureAdapter.Models.DTOs.Response;
 using LapDrive.SignatureAdapter.Models.Entities;
@@ -61,15 +62,15 @@ public class SignatureProcessService : ISignatureProcessService
         {
             // Get document from SharePoint
             var documentContent = await _documentRepository.GetDocumentContentAsync(
-                request.Document.WebUrl,
-                request.Document.LibraryName,
+                request.Document.Location.WebUrl,
+                request.Document.Location.LibraryName,
                 request.Document.Id,
                 request.Document.Type == DocumentTypes.Folder,
                 cancellationToken);
 
             if (documentContent == null)
             {
-                throw new BusinessException($"Document with ID {request.Document.Id} not found in library {request.Document.LibraryName}");
+                throw new BusinessException($"Document with ID {request.Document.Id} not found in library {request.Document.Location.LibraryName}");
             }
 
             // Create signature process entity
@@ -81,11 +82,17 @@ public class SignatureProcessService : ISignatureProcessService
                 Message = request.Metadata.Message,
                 Document = new Document
                 {
-                    Id = request.Document.Id,
-                    Name = request.Document.Name,
-                    LibraryName = request.Document.LibraryName,
-                    WebUrl = request.Document.WebUrl,
-                    Type = request.Document.Type == DocumentTypes.Folder ? DocumentType.Folder : DocumentType.File,
+                    Metadata = new DocumentMetadata
+                    {
+                        Id = request.Document.Id,
+                        Name = request.Document.Name,
+                        Type = request.Document.Type == DocumentTypes.Folder ? DocumentType.Folder : DocumentType.File,
+                        Location = new SharePointLocation
+                        {
+                            LibraryName = request.Document.Location.LibraryName,
+                            WebUrl = request.Document.Location.WebUrl
+                        }
+                    },
                     Content = documentContent
                 },
                 Signers = request.Signers.Select(s => new Signer
@@ -112,8 +119,8 @@ public class SignatureProcessService : ISignatureProcessService
 
             // Update document status in SharePoint
             await _documentRepository.UpdateDocumentStatusAsync(
-                request.Document.WebUrl,
-                request.Document.LibraryName,
+                request.Document.Location.WebUrl,
+                request.Document.Location.LibraryName,
                 request.Document.Id,
                 SignatureProcessStatus.WaitingForSignatures.ToSharePointStatus(),
                 processId,
@@ -124,8 +131,8 @@ public class SignatureProcessService : ISignatureProcessService
                request.Metadata.Subject,
                request.Metadata.Message,
                request.Document.Id,
-               request.Document.WebUrl,
-               request.Document.LibraryName,
+               request.Document.Location.WebUrl,
+               request.Document.Location.LibraryName,
                request.Signers.Select(s => s.Email),
                request.Recipients?.Select(r => r.Email) ?? new List<string>(),
                "", 
@@ -205,9 +212,12 @@ public class SignatureProcessService : ISignatureProcessService
                 {
                     Id = trackingInfo.DocumentId,
                     Name = Path.GetFileName(trackingInfo.DocumentId),
-                    LibraryName = trackingInfo.LibraryName,
-                    WebUrl = trackingInfo.WebUrl,
-                    Type = DocumentTypes.File // Default to file
+                    Type = DocumentTypes.File, // Default to file
+                    Location = new SharePointLocationInfo
+                    {
+                        LibraryName = trackingInfo.LibraryName,
+                        WebUrl = trackingInfo.WebUrl
+                    }
                 },
                 Signers = signatureProcessStatus?.Signers?.Select(f => new SignerDetail
                 {

@@ -68,7 +68,7 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         
         ArgumentNullException.ThrowIfNull(signatureProcess.Document?.Content, nameof(signatureProcess.Document.Content));
         
-        if (signatureProcess.Document.Type == Models.Enums.DocumentType.Folder)
+        if (signatureProcess.Document.Metadata.Type == Models.Enums.DocumentType.Folder)
         {
             // Process ZIP file containing multiple PDFs
             using (var zipArchive = new ZipArchive(new MemoryStream(signatureProcess.Document.Content), ZipArchiveMode.Read))
@@ -94,11 +94,11 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         else
         {
             // Process single PDF file
-            ArgumentException.ThrowIfNullOrEmpty(signatureProcess.Document.Name);
+            ArgumentException.ThrowIfNullOrEmpty(signatureProcess.Document.Metadata.Name);
             archivos.Add(new Archivo
             {
-                Nombre = signatureProcess.Document.Name,
-                ZipBase64 = Convert.ToBase64String(ZipDocument(signatureProcess.Document.Content, signatureProcess.Document.Name))
+                Nombre = signatureProcess.Document.Metadata.Name,
+                ZipBase64 = Convert.ToBase64String(ZipDocument(signatureProcess.Document.Content, signatureProcess.Document.Metadata.Name))
             });
         }
         
