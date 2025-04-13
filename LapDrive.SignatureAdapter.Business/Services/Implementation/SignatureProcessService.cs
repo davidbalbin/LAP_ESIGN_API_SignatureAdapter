@@ -90,7 +90,7 @@ public class SignatureProcessService : ISignatureProcessService
                 {
                     DisplayName = s.DisplayName,
                     Email = s.Email,
-                    SignatureInfo = new Models.Entities.SignatureInfo
+                    SignaturePlacement = new Models.Entities.SignaturePlacement
                     {
                         PageNumber = s.Signature.PageNumber,
                         X = s.Signature.X,

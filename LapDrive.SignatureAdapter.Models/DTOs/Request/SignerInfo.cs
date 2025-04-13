@@ -23,6 +23,6 @@ namespace LapDrive.SignatureAdapter.Models.DTOs.Request
         /// Gets or sets the signature placement information
         /// </summary>
         [JsonPropertyName("signature")]
-        public SignatureInfo Signature { get; set; } = new();
+        public SignaturePlacement Signature { get; set; } = new();
     }
 }

@@ -16,7 +16,7 @@ public class Signer
     public string Email { get; set; } = string.Empty;
     
     /// <summary>
-    /// Gets or sets the signature information
+    /// Gets or sets the signature placement configuration
     /// </summary>
-    public SignatureInfo SignatureInfo { get; set; } = new();
+    public SignaturePlacement SignaturePlacement { get; set; } = new();
 }

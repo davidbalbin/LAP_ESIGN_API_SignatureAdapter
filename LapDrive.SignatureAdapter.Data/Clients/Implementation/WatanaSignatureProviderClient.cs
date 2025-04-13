@@ -125,11 +125,11 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
                 firmas.Add(new FirmaConfig
                 {
                     Archivo = archivo.Nombre,
-                    UbicacionX = signer.SignatureInfo.X ?? 50,
-                    UbicacionY = signer.SignatureInfo.Y ?? 50,
+                    UbicacionX = signer.SignaturePlacement.X ?? 50,
+                    UbicacionY = signer.SignaturePlacement.Y ?? 50,
                     Largo = 160,
                     Alto = 40,
-                    Pagina = signer.SignatureInfo.PageNumber,
+                    Pagina = signer.SignaturePlacement.PageNumber,
                     Texto = _options.Templates.SignatureText,
                     Motivo = _options.Templates.SignatureReason,
                     ImageZipBase64 = GetDefaultLogoBase64()
@@ -268,28 +268,28 @@ public class WatanaSignatureProviderClient : ISignatureProviderClient
         }
     }
 
-    private FirmaVisual GetFirmaVisual(SignatureInfo signatureInfo)
+    private FirmaVisual GetFirmaVisual(SignaturePlacement placement)
     {
         var firmaVisual = new FirmaVisual
         {
             Largo = 160,
             Alto = 40,
-            Pagina = signatureInfo.PageNumber,
+            Pagina = placement.PageNumber,
             Texto = _options.Templates.SignatureText,
             ImageZipBase64 = GetDefaultLogoBase64()
         };
 
         // Si hay una posición predefinida, permite al firmante posicionar manualmente
-        if (!string.IsNullOrEmpty(signatureInfo.Position))
+        if (!string.IsNullOrEmpty(placement.Position))
         {
             firmaVisual.UbicacionX = 0;
             firmaVisual.UbicacionY = 0;
         }
         // Si se proporcionan coordenadas X e Y específicas
-        else if (signatureInfo.X.HasValue && signatureInfo.Y.HasValue)
+        else if (placement.X.HasValue && placement.Y.HasValue)
         {
-            firmaVisual.UbicacionX = signatureInfo.X.Value;
-            firmaVisual.UbicacionY = signatureInfo.Y.Value;
+            firmaVisual.UbicacionX = placement.X.Value;
+            firmaVisual.UbicacionY = placement.Y.Value;
         }
         // Posicionamiento automático por defecto
         else
