@@ -1,0 +1,53 @@
+erDiagram
+    SignatureRequest ||--o{ Document : includes
+    SignatureRequest ||--o{ Signature : has
+    SignatureRequest ||--o{ RequestHistory : logs
+    Signature ||--o{ SignatureHistory : tracks
+    
+    SignatureRequest {
+        uuid SignatureRequestId PK
+        string ProcessId
+        string Subject
+        string Message
+        datetime CreatedAt
+        string Status
+        string RequesterEmail
+        string RequesterName
+    }
+    
+    Document {
+        uuid DocumentId PK
+        uuid SignatureRequestId FK
+        string Name
+        string LibraryName
+        string WebUrl
+        string ItemId
+        int FileSize
+    }
+    
+    Signature {
+        uuid SignatureId PK
+        uuid SignatureRequestId FK
+        string SignerEmail
+        string SignerName
+        string Status
+        datetime SignatureDate
+        string SignerDocumentUrl
+        json PlacementData
+    }
+    
+    RequestHistory {
+        uuid RequestHistoryId PK
+        uuid SignatureRequestId FK
+        string PreviousStatus
+        string NewStatus
+        datetime ChangeDate
+    }
+    
+    SignatureHistory {
+        uuid SignatureHistoryId PK
+        uuid SignatureId FK
+        string PreviousStatus
+        string NewStatus
+        datetime ChangeDate
+    }

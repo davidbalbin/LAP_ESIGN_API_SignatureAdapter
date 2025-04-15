@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["metadata", "document", "signers", "requester"],
+  "properties": {
+    "requestId": {
+      "type": "string",
+      "description": "Identificador único de la solicitud"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["subject", "message", "createdAt"],
+      "properties": {
+        "subject": {
+          "type": "string",
+          "description": "Asunto del documento a firmar"
+        },
+        "message": {
+          "type": "string",
+          "description": "Mensaje adicional relacionado con la solicitud de firma"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha y hora de creación de la solicitud"
+        }
+      }
+    },
+    "requester": {
+      "type": "object",
+      "required": ["displayName", "email"],
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "Nombre completo del solicitante"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Correo electrónico del solicitante"
+        }
+      }
+    },
+    "document": {
+      "type": "object",
+      "required": ["id", "name", "libraryName", "webUrl", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID del documento en la biblioteca"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre del archivo PDF"
+        },
+        "libraryName": {
+          "type": "string",
+          "description": "Nombre de la biblioteca de SharePoint donde se almacena el documento"
+        },
+        "webUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL de la web de SharePoint donde se almacena el documento"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["file", "folder"],
+          "description": "Tipo del elemento: archivo individual (file) o carpeta con múltiples archivos (folder)"
+        }
+      }
+    },
+    "signers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["displayName", "email", "signature"],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Nombre completo del firmante"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Correo electrónico del firmante"
+          },
+          "signature": {
+            "type": "object",
+            "required": ["pageNumber"],
+            "oneOf": [
+              {
+                "required": ["x", "y"],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "description": "Posición horizontal de la firma en la página"
+                  },
+                  "y": {
+                    "type": "number",
+                    "description": "Posición vertical de la firma en la página"
+                  },
+                  "pageNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Número de página donde se colocará la firma"
+                  }
+                }
+              },
+              {
+                "required": ["position"],
+                "properties": {
+                  "position": {
+                    "type": "string",
+                    "enum": ["topLeft", "topCenter", "topRight", "bottomLeft", "bottomCenter", "bottomRight"],
+                    "description": "Posición predefinida de la firma en la página (para documentos tipo 'folder')"
+                  },
+                  "pageNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Número de página donde se colocará la firma"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "recipients": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["displayName", "email"],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Nombre completo del destinatario en copia"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Correo electrónico del destinatario en copia"
+          }
+        }
+      }
+    }
+  }
+}
